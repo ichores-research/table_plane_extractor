@@ -1,0 +1,8 @@
+downsample_vox_size: 0.02 # voxel size for downsampling
+normals_search_radius: 0.1
+normals_kNN: 30
+normals_thresh: 0.2 #used to filter out points that don't belong to horizontal planes. 
+                        #If |x| or |y| of the normal is bigger than the threshold, the point is removed from the cloud. 
+cluster_dbscan_minpoints: 100 #20 Minimum number of points to form a cluster.
+min_cluster_size: 50
+cluster_dbscan_eps: 0.1

@@ -11,9 +11,12 @@ import tf2_ros
 from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
 
 def transformPointCloud(cloud, target_frame, source_frame, tf_buffer):
-    #now = rospy.Time.now()
-    #tf_listener.waitForTransform(target_frame, source_frame, now, rospy.Duration(4.0))
-    #transform = tf_listener.lookupTransform(target_frame, source_frame, now)
+    ''' 
+    Transform pointcloud from source_frame to target_frame
+    Input: sensor_msgs/PointCloud2[] cloud, string target_frame, string source_frame
+            tf2_ros.Buffer tf_buffer
+    Output: table_plane_extractor/Plane[] planes, sensor_msgs/PointCloud2[] clouds
+    '''
     
     while not rospy.is_shutdown():
         try:
@@ -24,6 +27,12 @@ def transformPointCloud(cloud, target_frame, source_frame, tf_buffer):
         return transformedCloud
 
 def table_plane_extractor_methode(req):
+    ''' 
+    Table plane extractor who takes the point cloud topic as input and return possible horizontal planes 
+    with plane equation (x, y, z, d -> a * x + b * y + c * z + d = 0) and inlier cloud.
+    Input: string pointcloud_topic
+    Output: table_plane_extractor/Plane[] planes, sensor_msgs/PointCloud2[] clouds
+    '''
     planes = []
     cloudes = []
 
@@ -32,7 +41,7 @@ def table_plane_extractor_methode(req):
     tf_buffer = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf_buffer)
 
-    #read reconstruction file
+    # get pointcloud from topic and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
     pcd = rospy.wait_for_message(req.pointcloud_topic, PointCloud2, timeout=15)
     print(pcd.header.frame_id)
     pcd = transformPointCloud(pcd, "map", pcd.header.frame_id, tf_buffer)
@@ -90,6 +99,10 @@ def table_plane_extractor_methode(req):
     return TablePlaneExtractorResponse(planes, cloudes)
 
 def table_plane_extractor_server():
+    ''' 
+    Starting table plane extractor server node
+    Topic: /test/table_plane_extractor
+    '''
     rospy.init_node('table_plane_extractor_server')
     s = rospy.Service('/test/table_plane_extractor', TablePlaneExtractor, table_plane_extractor_methode)
     print("Ready to extract planes")

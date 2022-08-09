@@ -43,7 +43,7 @@ def table_plane_extractor_methode(req):
 
     # get pointcloud from topic and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
     pcd = rospy.wait_for_message(req.pointcloud_topic, PointCloud2, timeout=15)
-    print(pcd.header.frame_id)
+    header = pcd.header
     pcd = transformPointCloud(pcd, "map", pcd.header.frame_id, tf_buffer)
     pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
     pcd_orig = pcd
@@ -81,7 +81,7 @@ def table_plane_extractor_methode(req):
         planes.append(Plane(a, b, c,d))
         print("Plane equation: {}x + {}y + {}z + {} = 0".format(a,b,c,d))
         inlier_cloud = outlier_cloud.select_by_index(inliers)
-        cloudes.append(orh.o3dpc_to_rospc(inlier_cloud))
+        cloudes.append(orh.o3dpc_to_rospc(inlier_cloud, 'map', header.stamp))
         outlier_cloud = outlier_cloud.select_by_index(inliers, invert=True)
 
         #break if there are only small clusters left

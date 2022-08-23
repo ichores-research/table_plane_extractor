@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   genmsg
   sensor_msgs
+  vision_msgs
 )
 
 
@@ -21,6 +22,7 @@ add_message_files(
 add_service_files(
   FILES
   TablePlaneExtractor.srv
+  GetObjectsOnTable.srv
 )
 
 
@@ -30,6 +32,7 @@ generate_messages(
   std_msgs
   geometry_msgs
   sensor_msgs
+  vision_msgs
 )
 
 catkin_package()

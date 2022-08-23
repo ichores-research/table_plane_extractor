@@ -75,7 +75,8 @@ def table_plane_extractor_methode(req):
     min_cluster_size = rospy.get_param("/min_cluster_size")
     #get planes with RANSAC
     while len(outlier_cloud.points)>cluster_dbscan_minpoints and big_clusters_left:
-        plane_model, inliers = outlier_cloud.segment_plane(distance_threshold=0.03,
+        distance_threshold = rospy.get_param("/plane_segmentation_distance_threshold")
+        plane_model, inliers = outlier_cloud.segment_plane(distance_threshold=distance_threshold,
                                                 ransac_n=3,
                                                 num_iterations=1000)
         [a, b, c, d] = plane_model

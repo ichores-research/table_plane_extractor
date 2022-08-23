@@ -6,3 +6,10 @@ normals_thresh: 0.2 #used to filter out points that don't belong to horizontal p
 cluster_dbscan_minpoints: 100 #20 Minimum number of points to form a cluster.
 min_cluster_size: 50
 cluster_dbscan_eps: 0.1
+plane_segmentation_distance_threshold: 0.03
+
+get_objects_on_table:
+  z_min: 0.2 # min z coordinate of plane (relative to map frame) to be considered a valid table plane
+  cluster_dbscan_eps: 0.01 # density parameter that is used to find neighboruing points for object segmentation
+  min_points: 50 # minimum number of points to form a valid object-cluster
+  min_volume: 0.0001 # minimum volume bounding box has to have to not be discarded

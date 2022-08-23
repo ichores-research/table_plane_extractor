@@ -1,0 +1,4 @@
+﻿numpy
+open3d>=0.15.2
+open3d_ros_helper
+scipy>=1.4.0

@@ -9,6 +9,9 @@ find_package(catkin REQUIRED COMPONENTS
   genmsg
   sensor_msgs
   vision_msgs
+  tf2_ros
+  tf2_sensor_msgs
+  visualization_msgs
 )
 
 

@@ -28,25 +28,26 @@ def transformPointCloud(cloud, target_frame, source_frame, tf_buffer):
 
 def table_plane_extractor_methode(req):
     ''' 
-    Table plane extractor who takes the point cloud topic as input and return possible horizontal planes 
+    Table plane extractor who takes the point cloud as input and return possible horizontal planes 
     with plane equation (x, y, z, d -> a * x + b * y + c * z + d = 0) and inlier cloud.
+    Everything is transformed and relative to the 'map' frame_id.
     Input: string pointcloud_topic
     Output: table_plane_extractor/Plane[] planes, sensor_msgs/PointCloud2[] clouds
     '''
     planes = []
     cloudes = []
-
+    
     #tf_listener = tf.TransformListener()
     # tf buffer for tf transform
     tf_buffer = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf_buffer)
 
-    # get pointcloud from topic and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
-    pcd = rospy.wait_for_message(req.pointcloud_topic, PointCloud2, timeout=15)
+    # get pointcloud and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
+    pcd = req.point_cloud
     header = pcd.header
     pcd = transformPointCloud(pcd, "map", pcd.header.frame_id, tf_buffer)
-    pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
     pcd_orig = pcd
+    pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
 
     #downsample cloud
     downsample_vox_size = rospy.get_param("/downsample_vox_size")
@@ -83,7 +84,7 @@ def table_plane_extractor_methode(req):
         inlier_cloud = outlier_cloud.select_by_index(inliers)
         cloudes.append(orh.o3dpc_to_rospc(inlier_cloud, 'map', header.stamp))
         outlier_cloud = outlier_cloud.select_by_index(inliers, invert=True)
-
+        
         #break if there are only small clusters left
         idx = outlier_cloud.cluster_dbscan(cluster_dbscan_eps, cluster_dbscan_minpoints)
         values = np.unique(idx)

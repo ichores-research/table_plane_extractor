@@ -1,4 +1,4 @@
-string pointcloud_topic
+sensor_msgs/PointCloud2 point_cloud
 ---
 table_plane_extractor/Plane[] planes
 sensor_msgs/PointCloud2[] clouds

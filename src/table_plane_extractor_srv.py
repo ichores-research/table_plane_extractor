@@ -13,9 +13,9 @@ from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
 def transformPointCloud(cloud, target_frame, source_frame, tf_buffer):
     ''' 
     Transform pointcloud from source_frame to target_frame
-    Input: sensor_msgs/PointCloud2[] cloud, string target_frame, string source_frame
+    Input: sensor_msgs/PointCloud2 cloud, string target_frame, string source_frame
             tf2_ros.Buffer tf_buffer
-    Output: table_plane_extractor/Plane[] planes, sensor_msgs/PointCloud2[] clouds
+    Output: sensor_msgs/PointCloud2 transformedCloud
     '''
     
     while not rospy.is_shutdown():
@@ -31,7 +31,7 @@ def table_plane_extractor_methode(req):
     Table plane extractor who takes the point cloud as input and return possible horizontal planes 
     with plane equation (x, y, z, d -> a * x + b * y + c * z + d = 0) and inlier cloud.
     Everything is transformed and relative to the 'map' frame_id.
-    Input: string pointcloud_topic
+    Input: sensor_msgs/PointCloud2 inputCloud
     Output: table_plane_extractor/Plane[] planes, sensor_msgs/PointCloud2[] clouds
     '''
     planes = []

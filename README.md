@@ -1,35 +1,54 @@
 # table_plane_extractor
-
-Service for horizontal table plane extraction
+Service for horizontal table plane extraction.  
+Service for getting objects that are placed on the table plane.
 
 ## Dependencies ##
 - [ROS Noetic](http://wiki.ros.org/noetic/Installation/Ubuntu) 
-- [Open3d](http://www.open3d.org/docs/release/)
-- [open3d_ros_helper](https://github.com/SeungBack/open3d-ros-helper) 
-- [tf2_ros](http://wiki.ros.org/tf2_ros)
+- [requirements.txt](requirements.txt)
+- [CMakeLists.txt](CMakeLists.txt)
 
-## Service
+## Services
 
-Table plane extractor who takes the point cloud topic as input and return possible horizontal planes with plane equation (x, y, z, d -> a * x + b * y + c * z + d = 0) and inlier cloud.
-Input: string pointcloud_topic
-Output: table_plane_extractor/Plane[] planes, sensor_msgs/PointCloud2[] clouds
+### TablePlaneExtractor
+Table plane extractor who takes the point cloud as input and return possible horizontal planes with plane equation (x, y, z, d -> a * x + b * y + c * z + d = 0) and inlier cloud.
+
+**Input:** sensor_msgs/PointCloud2 pointcloud  
+**Output:** table_plane_extractor/Plane[] planes, sensor_msgs/PointCloud2[] clouds
+
 ```
 src/table_plane_extractor_srv.py
 ```
 
+### GetObjectsOnTable
+Service that returns bounding boxes of objects found on a table plane.  
+**Input:** sensor_msgs/PointCloud2 scene_pointcloud  
+**Output:** vision_msgs/BoundingBox3DArray detected_objects
+```
+src/get_objects_on_table.py
+```
+
 ## Demo
 
-You can find a demo code in the File 
+You can find demo codes in the Files  
 ```
 src/test_plane.py
+src/objects_on_table_vis.py
 ```
 
 ## Startup
 
-You can start the service with
+You can start the TablePlaneExtractor service with
 ```
 roslaunch table_plane_extractor table_plane_extractor.launch
 ```
+You can start the GetObjectsOnTable service with
+```
+roslaunch table_plane_extractor get_objects_on_table.launch
+```
+
+## Status
+stable, tested on Ubuntu 20.04 and ROS noetic.  
+Known Issue: open3d only approximates the minimum volume bounding box -> for certain objects bounding box is not fitted perfectly.
 
 ## Message
 
@@ -49,7 +68,7 @@ float32 d
 
 #### Goal
 ```
-string pointcloud_topic
+sensor_msgs/PointCloud2 pointcloud
 ```
 
 #### Result
@@ -57,3 +76,16 @@ string pointcloud_topic
 table_plane_extractor/Plane[] planes
 sensor_msgs/PointCloud2[] clouds
 ```
+
+### GetObjectsOnTable.srv
+#### Goal
+```
+sensor_msgs/PointCloud2 scene_pointcloud  
+```
+
+#### Result
+```
+vision_msgs/BoundingBox3DArray detected_objects
+```
+
+

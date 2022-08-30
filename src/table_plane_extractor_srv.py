@@ -1,41 +1,24 @@
 #!/usr/bin/python3
-
+from math import tan, pi
 from table_plane_extractor.srv import TablePlaneExtractor, TablePlaneExtractorResponse
 from table_plane_extractor.msg import Plane
 import numpy as np
 import open3d as o3d
 import rospy
-from sensor_msgs.msg import PointCloud2
 from open3d_ros_helper import open3d_ros_helper as orh
 import tf2_ros
-from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
+from util import o3d_bb_to_ros_bb, transformPointCloud
+from vision_msgs.msg import BoundingBox3DArray
 
-def transformPointCloud(cloud, target_frame, source_frame, tf_buffer):
-    ''' 
-    Transform pointcloud from source_frame to target_frame
-    Input: sensor_msgs/PointCloud2 cloud, string target_frame, string source_frame
-            tf2_ros.Buffer tf_buffer
-    Output: sensor_msgs/PointCloud2 transformedCloud
-    '''
-    
-    while not rospy.is_shutdown():
-        try:
-            transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
-        except:
-            continue
-        transformedCloud = do_transform_cloud(cloud, transform)
-        return transformedCloud
 
 def table_plane_extractor_methode(req):
     ''' 
-    Table plane extractor who takes the point cloud as input and return possible horizontal planes 
-    with plane equation (x, y, z, d -> a * x + b * y + c * z + d = 0) and inlier cloud.
-    Everything is transformed and relative to the 'map' frame_id.
+    Table plane extractor who takes the point cloud as input. Returns possible horizontal planes 
+    with plane equation (x, y, z, d -> a * x + b * y + c * z + d = 0) and bounding boxes around the planes.
     Input: sensor_msgs/PointCloud2 inputCloud
-    Output: table_plane_extractor/Plane[] planes, sensor_msgs/PointCloud2[] clouds
+    Output: table_plane_extractor/Plane[] planes, vision_msgs/BoundingBox3DArray plane_bounding_boxes
     '''
-    planes = []
-    cloudes = []
+    base_frame = rospy.get_param("/table_plane_extractor/base_frame")
     
     #tf_listener = tf.TransformListener()
     # tf buffer for tf transform
@@ -44,61 +27,67 @@ def table_plane_extractor_methode(req):
 
     # get pointcloud and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
     pcd = req.point_cloud
+    pcd = transformPointCloud(pcd, base_frame, pcd.header.frame_id, tf_buffer)
     header = pcd.header
-    pcd = transformPointCloud(pcd, "map", pcd.header.frame_id, tf_buffer)
-    pcd_orig = pcd
     pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
 
     #downsample cloud
-    downsample_vox_size = rospy.get_param("/downsample_vox_size")
+    downsample_vox_size = rospy.get_param("/table_plane_extractor/downsample_vox_size")
+    z_min = rospy.get_param("/table_plane_extractor/z_min")
     pcd = pcd.voxel_down_sample(voxel_size=downsample_vox_size)
 
-    #compute normals and filter out any points that are not on horizontal area
-    normals_search_radius = rospy.get_param("/normals_search_radius")
-    normals_kNN = rospy.get_param("/normals_kNN")
-    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=normals_search_radius, max_nn=normals_kNN))
-    normals = np.asarray(pcd.normals)
-    normals_thresh = rospy.get_param("/normals_thresh")
-    pcd = pcd.select_by_index(np.where((abs(normals[:, 0]) < normals_thresh) 
-                                                    & (abs(normals[:, 1]) < normals_thresh))[0])
-    scene = pcd
+    planes = []
+    bb_arr = BoundingBox3DArray
+    bb_arr.boxes = []
+    bb_arr.header = header
 
-    size_cof = len(pcd.points)
-    outlier_cloud = pcd
-    h_planes = []  #list of horizontal planes (parameters)
-    h_plane_clouds = [] #list of horizontal plane pointclouds, not clustered
+    cluster_dbscan_eps = rospy.get_param("/table_plane_extractor/cluster_dbscan_eps")
+    min_cluster_size = rospy.get_param("/table_plane_extractor/min_cluster_size")
+    max_angle_deg = rospy.get_param("/table_plane_extractor/max_angle_deg")
+    max_angle_rad = max_angle_deg * pi/180
 
-    scene_filtered = scene
-    big_clusters_left = True
-    cluster_dbscan_minpoints = rospy.get_param("/cluster_dbscan_minpoints")
-    cluster_dbscan_eps = rospy.get_param("/cluster_dbscan_eps")
-    min_cluster_size = rospy.get_param("/min_cluster_size")
     #get planes with RANSAC
-    while len(outlier_cloud.points)>cluster_dbscan_minpoints and big_clusters_left:
-        distance_threshold = rospy.get_param("/plane_segmentation_distance_threshold")
-        plane_model, inliers = outlier_cloud.segment_plane(distance_threshold=distance_threshold,
+    while len(pcd.points) > min_cluster_size:
+        distance_threshold = rospy.get_param("/table_plane_extractor/plane_segmentation_distance_threshold")
+        plane_model, inliers = pcd.segment_plane(distance_threshold=distance_threshold,
                                                 ransac_n=3,
                                                 num_iterations=1000)
         [a, b, c, d] = plane_model
-        planes.append(Plane(a, b, c,d))
-        print("Plane equation: {}x + {}y + {}z + {} = 0".format(a,b,c,d))
-        inlier_cloud = outlier_cloud.select_by_index(inliers)
-        cloudes.append(orh.o3dpc_to_rospc(inlier_cloud, 'map', header.stamp))
-        outlier_cloud = outlier_cloud.select_by_index(inliers, invert=True)
-        
-        #break if there are only small clusters left
-        idx = outlier_cloud.cluster_dbscan(cluster_dbscan_eps, cluster_dbscan_minpoints)
-        values = np.unique(idx)
-        for c in values:
-            #select clustered plane cloud
-            cluster_idx = np.where(np.asarray(idx) == c)
-            if len(cluster_idx[0]) > min_cluster_size:
-                big_clusters_left = True
-                break
-            else:
-                big_clusters_left = False
 
-    return TablePlaneExtractorResponse(planes, cloudes)
+        # remove non-horizontal-planes
+        if(abs(tan(a/c)) > max_angle_rad or abs(tan(b/c)) > max_angle_rad):
+            pcd = pcd.select_by_index(inliers, invert=True)
+            continue
+
+        #remove floor
+        bb_pcd = pcd.get_oriented_bounding_box()
+        if (bb_pcd.center[2] < z_min):
+            pcd = pcd.select_by_index(inliers, invert=True)
+            continue
+
+        inlier_cloud = pcd.select_by_index(inliers)
+        pcd = pcd.select_by_index(inliers, invert=True)
+
+        # segment plane-pointcloud because multiple objects could potentially align with the same plane
+        idx = inlier_cloud.cluster_dbscan(cluster_dbscan_eps, min_cluster_size)
+        values = np.unique(idx)
+        for val in values:
+            if val == -1:
+                continue
+            # select clustered plane cloud
+            cluster_idx = np.where(np.asarray(idx) == val)[0]
+            plane_pc = inlier_cloud.select_by_index(cluster_idx)
+            bb_plane = plane_pc.get_oriented_bounding_box()
+
+            # remove floor again (clustered points could be part of floor)
+            if (bb_plane.center[2] < z_min):
+                continue
+            
+            planes.append(Plane(a, b, c,d))
+            print("Plane equation: {}x + {}y + {}z + {} = 0".format(a,b,c,d))
+            bb_arr.boxes.append(o3d_bb_to_ros_bb(bb_plane))
+
+    return TablePlaneExtractorResponse(planes, bb_arr)
 
 def table_plane_extractor_server():
     ''' 

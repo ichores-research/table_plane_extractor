@@ -11,26 +11,45 @@ Service for getting objects that are placed on the table plane.
 ## Services
 
 ### TablePlaneExtractor
-Table plane extractor who takes the point cloud as input and return possible horizontal planes with plane equation (x, y, z, d -> a * x + b * y + c * z + d = 0) and inlier cloud.
+Table plane extractor who takes the point cloud as input. Returns possible horizontal planes with plane equation (x, y, z, d -> a * x + b * y + c * z + d = 0) and bounding boxes around the planes.
 
-**Input:** sensor_msgs/PointCloud2 pointcloud  
-**Output:** table_plane_extractor/Plane[] planes, sensor_msgs/PointCloud2[] clouds
-
+**Service topic:** 
+```
+/test/table_plane_extractor
+```
+**Input:** 
+```
+sensor_msgs/PointCloud2 pointcloud
+```
+**Result:** 
+```
+table_plane_extractor/Plane[] planes, 
+vision_msgs/BoundingBox3DArray plane_bounding_boxes
+```
+**File:**
 ```
 src/table_plane_extractor_srv.py
 ```
 
 ### GetObjectsOnTable
-Service that returns bounding boxes of objects found on a table plane.  
-**Input:** sensor_msgs/PointCloud2 scene_pointcloud  
-**Output:** vision_msgs/BoundingBox3DArray detected_objects
+Service that returns bounding boxes of objects found on a table plane. 
+
+**Input:**
+```
+sensor_msgs/PointCloud2 scene_pointcloud
+```
+**Result:**
+```
+vision_msgs/BoundingBox3DArray detected_objects
+```
+**File:**
 ```
 src/get_objects_on_table.py
 ```
 
-## Demo
+## Test
 
-You can find demo codes in the Files  
+You can test and see example usages of the services with the following scripts
 ```
 src/test_plane.py
 src/objects_on_table_vis.py
@@ -62,31 +81,4 @@ float32 y
 float32 z
 float32 d
 ```
-
-## Service
-
-### TablePlaneExtractor.srv
-
-#### Goal
-```
-sensor_msgs/PointCloud2 pointcloud
-```
-
-#### Result
-```
-table_plane_extractor/Plane[] planes
-sensor_msgs/PointCloud2[] clouds
-```
-
-### GetObjectsOnTable.srv
-#### Goal
-```
-sensor_msgs/PointCloud2 scene_pointcloud  
-```
-
-#### Result
-```
-vision_msgs/BoundingBox3DArray detected_objects
-```
-
 

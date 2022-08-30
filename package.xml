@@ -2,7 +2,7 @@
 <package format="2">
   <name>table_plane_extractor</name>
   <version>0.0.0</version>
-  <description>The table_plane_extractor package</description>
+  <description>Service for horizontal table plane extraction. Service for getting objects that are placed on the table plane.</description>
 
   <maintainer email="v4r@todo.todo">v4r</maintainer>
 
@@ -21,5 +21,9 @@
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <depend>vision_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_sensor_msgs</depend>
+  <depend>visualization_msgs</depend>
 
 </package>

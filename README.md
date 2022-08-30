@@ -5,6 +5,7 @@ Service for getting objects that are placed on the table plane.
 ## Dependencies ##
 - [ROS Noetic](http://wiki.ros.org/noetic/Installation/Ubuntu) 
 - [requirements.txt](requirements.txt)
+- [package.xml](package.xml)
 - [CMakeLists.txt](CMakeLists.txt)
 
 ## Services

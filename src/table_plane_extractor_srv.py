@@ -1,9 +1,8 @@
 #!/usr/bin/python3
-from math import tan, pi
+from math import atan, pi
 from table_plane_extractor.srv import TablePlaneExtractor, TablePlaneExtractorResponse
 from table_plane_extractor.msg import Plane
 import numpy as np
-import open3d as o3d
 import rospy
 from open3d_ros_helper import open3d_ros_helper as orh
 import tf2_ros
@@ -33,38 +32,40 @@ def table_plane_extractor_methode(req):
 
     #downsample cloud
     downsample_vox_size = rospy.get_param("/table_plane_extractor/downsample_vox_size")
-    z_min = rospy.get_param("/table_plane_extractor/z_min")
     pcd = pcd.voxel_down_sample(voxel_size=downsample_vox_size)
 
     planes = []
-    bb_arr = BoundingBox3DArray
+    bb_arr = BoundingBox3DArray()
     bb_arr.boxes = []
     bb_arr.header = header
 
     cluster_dbscan_eps = rospy.get_param("/table_plane_extractor/cluster_dbscan_eps")
     min_cluster_size = rospy.get_param("/table_plane_extractor/min_cluster_size")
     max_angle_deg = rospy.get_param("/table_plane_extractor/max_angle_deg")
+    z_min = rospy.get_param("/table_plane_extractor/z_min")
+    distance_threshold = rospy.get_param("/table_plane_extractor/plane_segmentation_distance_threshold")
     max_angle_rad = max_angle_deg * pi/180
 
     #get planes with RANSAC
     while len(pcd.points) > min_cluster_size:
-        distance_threshold = rospy.get_param("/table_plane_extractor/plane_segmentation_distance_threshold")
         plane_model, inliers = pcd.segment_plane(distance_threshold=distance_threshold,
                                                 ransac_n=3,
                                                 num_iterations=1000)
+        # ax + by + cz + d = 0
         [a, b, c, d] = plane_model
 
-        # remove non-horizontal-planes
-        if(abs(tan(a/c)) > max_angle_rad or abs(tan(b/c)) > max_angle_rad):
+        # remove non-horizontal-planes 
+        # z = (-ax - by - d)/c -> gradient = (-a/c, -b/c)
+        if(abs(atan(-a/c)) > max_angle_rad or abs(atan(-b/c)) > max_angle_rad):
             pcd = pcd.select_by_index(inliers, invert=True)
             continue
-
+        
         #remove floor
         bb_pcd = pcd.get_oriented_bounding_box()
         if (bb_pcd.center[2] < z_min):
             pcd = pcd.select_by_index(inliers, invert=True)
             continue
-
+        
         inlier_cloud = pcd.select_by_index(inliers)
         pcd = pcd.select_by_index(inliers, invert=True)
 
@@ -86,7 +87,7 @@ def table_plane_extractor_methode(req):
             planes.append(Plane(a, b, c,d))
             print("Plane equation: {}x + {}y + {}z + {} = 0".format(a,b,c,d))
             bb_arr.boxes.append(o3d_bb_to_ros_bb(bb_plane))
-
+    
     return TablePlaneExtractorResponse(planes, bb_arr)
 
 def table_plane_extractor_server():

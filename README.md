@@ -1,6 +1,6 @@
 # table_plane_extractor
 Service for horizontal table plane extraction.  
-Service for getting objects that are placed on the table plane.
+Services for getting objects that are placed on the table plane.
 
 ## Dependencies ##
 - [ROS Noetic](http://wiki.ros.org/noetic/Installation/Ubuntu) 
@@ -26,14 +26,20 @@ sensor_msgs/PointCloud2 pointcloud
 table_plane_extractor/Plane[] planes, 
 vision_msgs/BoundingBox3DArray plane_bounding_boxes
 ```
+First element of *planes* corresponds with the first element of *plane_bounding_boxes.boxes* and so on.
+
 **File:**
 ```
 src/table_plane_extractor_srv.py
 ```
 
-### GetObjectsOnTable
+### GetBBOfObjectsOnTable
 Service that returns bounding boxes of objects found on a table plane. 
 
+**Service topic:** 
+```
+/objects_on_table/get_bounding_boxes
+```
 **Input:**
 ```
 sensor_msgs/PointCloud2 scene_pointcloud
@@ -47,12 +53,32 @@ vision_msgs/BoundingBox3DArray detected_objects
 src/get_objects_on_table.py
 ```
 
+### GetPCOfObjectsOnTable
+Service that returns the point clouds of objects found on a table plane. 
+
+**Service topic:** 
+```
+/objects_on_table/get_point_clouds
+```
+**Input:**
+```
+sensor_msgs/PointCloud2 scene_pointcloud
+```
+**Result:**
+```
+sensor_msgs/PointCloud2[] detected_objects
+```
+**File:**
+```
+src/get_objects_on_table.py
+```
+
 ## Test
 
 You can test and see example usages of the services with the following scripts
 ```
 src/test_plane.py
-src/objects_on_table_vis.py
+src/get_objects_on_table.py
 ```
 
 ## Startup
@@ -61,7 +87,7 @@ You can start the TablePlaneExtractor service with
 ```
 roslaunch table_plane_extractor table_plane_extractor.launch
 ```
-You can start the GetObjectsOnTable service with
+You can start the GetXXOfObjectsOnTable services with
 ```
 roslaunch table_plane_extractor get_objects_on_table.launch
 ```

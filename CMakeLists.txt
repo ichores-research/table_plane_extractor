@@ -25,7 +25,8 @@ add_message_files(
 add_service_files(
   FILES
   TablePlaneExtractor.srv
-  GetObjectsOnTable.srv
+  GetPCOfObjectsOnTable.srv
+  GetBBOfObjectsOnTable.srv
 )
 
 

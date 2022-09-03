@@ -11,7 +11,7 @@
 ## Services
 
 ### TablePlaneExtractor
-Table plane extractor who takes the point cloud as input. Returns possible horizontal planes with plane equation ($x, y, z, d \rightarrow a x + b y + c z + d = 0$ ) and bounding boxes around the planes.
+Table plane extractor who takes the point cloud as input. Returns possible horizontal planes with plane equation ( $x, y, z, d \rightarrow a x + b y + c z + d = 0$ ) and bounding boxes around the planes.
 
 **Service topic:** 
 ```
@@ -67,14 +67,6 @@ sensor_msgs/PointCloud2[] detected_objects
 src/get_objects_on_table.py
 ```
 
-## Test
-
-You can test and see example usages of the services with the following scripts
-```
-src/test_plane.py
-src/get_objects_on_table.py
-```
-
 ## Startup
 
 You can start the TablePlaneExtractor service with
@@ -91,7 +83,7 @@ roslaunch table_plane_extractor get_objects_on_table.launch
 You can find demo codes in the Files  
 ```
 src/test_plane.py
-src/objects_on_table_vis.py
+src/get_objects_on_table_test.py
 ```
 
 ## Status

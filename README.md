@@ -1,35 +1,97 @@
 # table_plane_extractor
-
-Service for horizontal table plane extraction
+- Service for horizontal table plane extraction.  
+- Services for getting objects (or multi-objects blobs if they are too close to each other) that are placed on the table plane.
 
 ## Dependencies ##
 - [ROS Noetic](http://wiki.ros.org/noetic/Installation/Ubuntu) 
-- [Open3d](http://www.open3d.org/docs/release/)
-- [open3d_ros_helper](https://github.com/SeungBack/open3d-ros-helper) 
-- [tf2_ros](http://wiki.ros.org/tf2_ros)
+- [requirements.txt](requirements.txt)
+- [package.xml](package.xml)
+- [CMakeLists.txt](CMakeLists.txt)
 
-## Service
+## Services
 
-Table plane extractor who takes the point cloud topic as input and return possible horizontal planes with plane equation (x, y, z, d -> a * x + b * y + c * z + d = 0) and inlier cloud.
-Input: string pointcloud_topic
-Output: table_plane_extractor/Plane[] planes, sensor_msgs/PointCloud2[] clouds
+### TablePlaneExtractor
+Table plane extractor who takes the point cloud as input. Returns possible horizontal planes with plane equation ( $x, y, z, d \rightarrow a x + b y + c z + d = 0$ ) and bounding boxes around the planes.
+
+**Service topic:** 
+```
+/test/table_plane_extractor
+```
+**Input/Output:** 
+```
+sensor_msgs/PointCloud2 pointcloud
+---
+table_plane_extractor/Plane[] planes, 
+vision_msgs/BoundingBox3DArray plane_bounding_boxes
+```
+First element of *planes* corresponds with the first element of *plane_bounding_boxes.boxes* and so on.
+
+**File:**
 ```
 src/table_plane_extractor_srv.py
 ```
 
-## Demo
+### GetBBOfObjectsOnTable
+Service that returns bounding boxes of objects found on a table plane. 
 
-You can find a demo code in the File 
+**Service topic:** 
 ```
-src/test_plane.py
+/objects_on_table/get_bounding_boxes
+```
+**Input/Output:**
+```
+sensor_msgs/PointCloud2 scene_pointcloud
+---
+vision_msgs/BoundingBox3DArray detected_objects
+```
+**File:**
+```
+src/get_objects_on_table.py
+```
+
+### GetPCOfObjectsOnTable
+Service that returns the point clouds of objects found on a table plane. 
+
+**Service topic:** 
+```
+/objects_on_table/get_point_clouds
+```
+**Input/Output:**
+```
+sensor_msgs/PointCloud2 scene_pointcloud
+---
+sensor_msgs/PointCloud2[] detected_objects
+```
+**File:**
+```
+src/get_objects_on_table.py
 ```
 
 ## Startup
 
-You can start the service with
+You can start the TablePlaneExtractor service with
 ```
 roslaunch table_plane_extractor table_plane_extractor.launch
 ```
+You can start the GetXXOfObjectsOnTable services with
+```
+roslaunch table_plane_extractor get_objects_on_table.launch
+```
+
+## Demo
+
+You can find demo codes in the Files  
+```
+src/test_plane.py
+src/get_objects_on_table_test.py
+```
+
+## Status
+stable, tested on Ubuntu 20.04 and ROS noetic.  
+
+
+### Known Issues
+- open3d only approximates the minimum volume bounding box -> for certain objects bounding box is not fitted perfectly.
 
 ## Message
 
@@ -43,17 +105,3 @@ float32 z
 float32 d
 ```
 
-## Service
-
-### TablePlaneExtractor.srv
-
-#### Goal
-```
-string pointcloud_topic
-```
-
-#### Result
-```
-table_plane_extractor/Plane[] planes
-sensor_msgs/PointCloud2[] clouds
-```

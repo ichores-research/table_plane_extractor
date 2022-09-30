@@ -4,7 +4,7 @@ import rospy
 import numpy as np
 import tf2_ros
 from visualization_msgs.msg import MarkerArray
-from util import ros_bb_to_o3d_bb, transformPointCloud, o3d_bb_list_to_ros_bb_arr, ros_bb_arr_to_rviz_marker_arr
+from v4r_util.util import ros_bb_to_o3d_bb, transformPointCloud, o3d_bb_list_to_ros_bb_arr, ros_bb_arr_to_rviz_marker_arr
 from table_plane_extractor.srv import GetBBOfObjectsOnTable, GetBBOfObjectsOnTableResponse, GetPCOfObjectsOnTable, GetPCOfObjectsOnTableResponse
 from table_plane_extractor_srv import table_plane_extractor_methode
 

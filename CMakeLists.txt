@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2_sensor_msgs
   visualization_msgs
+  v4r_util
 )
 
 
@@ -29,7 +30,6 @@ add_service_files(
   GetBBOfObjectsOnTable.srv
 )
 
-
 # Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
@@ -38,6 +38,7 @@ generate_messages(
   sensor_msgs
   vision_msgs
 )
+
 
 catkin_package()
 include_directories()

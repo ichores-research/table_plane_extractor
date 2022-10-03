@@ -4,7 +4,7 @@ from table_plane_extractor.srv import TablePlaneExtractor
 from visualization_msgs.msg import MarkerArray
 import rospy
 from sensor_msgs.msg import PointCloud2
-from util import ros_bb_arr_to_rviz_marker_arr
+from v4r_util.util import ros_bb_arr_to_rviz_marker_arr
 
 
 class UseTablePlaneExtractor():

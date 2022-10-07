@@ -5,10 +5,24 @@ from table_plane_extractor.msg import Plane
 import numpy as np
 import rospy
 import open3d as o3d
+import compas.geometry.bbox as compas_bb
 from open3d_ros_helper import open3d_ros_helper as orh
 import tf2_ros
 from v4r_util.util import o3d_bb_to_ros_bb, transformPointCloud
 from vision_msgs.msg import BoundingBox3DArray
+
+
+def get_minimum_oriented_bounding_box(o3d_pc):
+    '''
+    Computes the oriented minimum bounding box of a set of points in 3D space.
+    Input: open3d.geometry.PointCloud o3d_pc
+    Output: open3d.geometry.OrientedBoundingBox o3d_bb
+    '''
+    bb_points = np.array(
+        compas_bb.oriented_bounding_box_numpy(np.array(o3d_pc.points)))
+    o3d_bb = o3d.geometry.OrientedBoundingBox.create_from_points(
+        o3d.utility.Vector3dVector(bb_points))
+    return o3d_bb
 
 
 def table_plane_extractor_methode(req):
@@ -82,13 +96,9 @@ def table_plane_extractor_methode(req):
             cluster_idx = np.where(np.asarray(idx) == val)[0]
             plane_pc = inlier_cloud.select_by_index(cluster_idx)
             bb_plane = plane_pc.get_oriented_bounding_box()
-
-            # remove floor again (clustered points could be part of floor)
-            if (bb_plane.center[2] < z_min):
-                continue
-
             planes.append(Plane(a, b, c, d))
             print("Plane equation: {}x + {}y + {}z + {} = 0".format(a, b, c, d))
+            bb_plane = get_minimum_oriented_bounding_box(plane_pc)
             bb_arr.boxes.append(o3d_bb_to_ros_bb(bb_plane))
 
     return TablePlaneExtractorResponse(planes, bb_arr)

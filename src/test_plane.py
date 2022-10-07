@@ -15,7 +15,8 @@ class UseTablePlaneExtractor():
         # get point cloud
         topic = '/hsrb/head_rgbd_sensor/depth_registered/rectified_points'
         sub = rospy.Subscriber(topic, PointCloud2, self.pc_cb)
-        pub = rospy.Publisher('PlaneBoundingBoxVisualizer', MarkerArray, queue_size=10)
+        pub = rospy.Publisher('PlaneBoundingBoxVisualizer',
+                              MarkerArray, queue_size=10)
         print("waiting for pointcloud message")
         rospy.wait_for_message(topic, PointCloud2)
         print("waiting for table_plane_extractor service")
@@ -24,11 +25,14 @@ class UseTablePlaneExtractor():
             # use service
             print("calling service")
             start = rospy.get_time()
-            table_extractor = rospy.ServiceProxy('/test/table_plane_extractor', TablePlaneExtractor)
+            table_extractor = rospy.ServiceProxy(
+                '/test/table_plane_extractor', TablePlaneExtractor)
             response = table_extractor(self.cloud)
             # publish markers
-            marker_arr = ros_bb_arr_to_rviz_marker_arr(response.plane_bounding_boxes)
+            marker_arr = ros_bb_arr_to_rviz_marker_arr(
+                response.plane_bounding_boxes)
             pub.publish(marker_arr)
+            print((str(len(response.plane_bounding_boxes.boxes))) + ' plane(s) found!')
             print("done in " + str(rospy.get_time() - start) + " s")
 
         except rospy.ServiceException as e:
@@ -36,6 +40,7 @@ class UseTablePlaneExtractor():
 
     def pc_cb(self, data):
         self.cloud = data
+
 
 if __name__ == "__main__":
     rospy.init_node('table_plane_extractor_client')

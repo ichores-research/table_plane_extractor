@@ -2,7 +2,7 @@ table_plane_extractor:
   downsample_vox_size: 0.01                     # voxel size (in m) for downsampling
   max_angle_deg: 5                              # maximum allowed angle (in degree) to still be considered horizontal
   min_cluster_size: 200                         # min amount of points needed to form an object
-  cluster_dbscan_eps: 0.1                       # eps for dbscan clustering algorithm (in m)
+  cluster_dbscan_eps: 0.15                       # eps for dbscan clustering algorithm (in m)
   plane_segmentation_distance_threshold: 0.01   # Max distance (in m) a point can be from the plane model
                                                 # and still be considered an inlier.
   base_frame: map                               # frame which is used for all calculations, which means

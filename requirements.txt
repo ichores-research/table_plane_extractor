@@ -2,4 +2,6 @@
 open3d==0.15.2
 open3d_ros_helper
 scipy>=1.4.0
-compas
+# we need the package anyways for ros so should be fine?, 
+# but might lead to problems if the v4r_util is in another ros-workspace
+-r ../v4r_util/requirements.txt

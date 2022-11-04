@@ -8,21 +8,8 @@ import open3d as o3d
 import compas.geometry.bbox as compas_bb
 from open3d_ros_helper import open3d_ros_helper as orh
 import tf2_ros
-from v4r_util.util import o3d_bb_to_ros_bb, transformPointCloud
+from v4r_util.util import o3d_bb_to_ros_bb, transformPointCloud, get_minimum_oriented_bounding_box
 from vision_msgs.msg import BoundingBox3DArray
-
-
-def get_minimum_oriented_bounding_box(o3d_pc):
-    '''
-    Computes the oriented minimum bounding box of a set of points in 3D space.
-    Input: open3d.geometry.PointCloud o3d_pc
-    Output: open3d.geometry.OrientedBoundingBox o3d_bb
-    '''
-    bb_points = np.array(
-        compas_bb.oriented_bounding_box_numpy(np.array(o3d_pc.points)))
-    o3d_bb = o3d.geometry.OrientedBoundingBox.create_from_points(
-        o3d.utility.Vector3dVector(bb_points))
-    return o3d_bb
 
 
 def table_plane_extractor_methode(req):

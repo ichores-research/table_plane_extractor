@@ -3,11 +3,10 @@ from open3d_ros_helper import open3d_ros_helper as orh
 import rospy
 import numpy as np
 import tf2_ros
-import compas.geometry.bbox as compas_bb
 from visualization_msgs.msg import MarkerArray
-from v4r_util.util import ros_bb_to_o3d_bb, transformPointCloud, o3d_bb_list_to_ros_bb_arr, ros_bb_arr_to_rviz_marker_arr
+from v4r_util.util import ros_bb_to_o3d_bb, transformPointCloud, o3d_bb_list_to_ros_bb_arr, ros_bb_arr_to_rviz_marker_arr, get_minimum_oriented_bounding_box
 from table_plane_extractor.srv import GetBBOfObjectsOnTable, GetBBOfObjectsOnTableResponse, GetPCOfObjectsOnTable, GetPCOfObjectsOnTableResponse
-from table_plane_extractor_srv import table_plane_extractor_methode, get_minimum_oriented_bounding_box
+from table_plane_extractor_srv import table_plane_extractor_methode
 
 
 def get_objects_on_table(req, target_frame):

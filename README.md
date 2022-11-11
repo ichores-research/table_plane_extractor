@@ -91,7 +91,6 @@ stable, tested on Ubuntu 20.04 and ROS noetic.
 
 
 ### Known Issues
-- open3d only approximates the minimum volume bounding box -> for certain objects bounding box is not fitted perfectly.
 
 ## Message
 

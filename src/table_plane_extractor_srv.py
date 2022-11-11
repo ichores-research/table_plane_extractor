@@ -5,9 +5,10 @@ from table_plane_extractor.msg import Plane
 import numpy as np
 import rospy
 import open3d as o3d
+import compas.geometry.bbox as compas_bb
 from open3d_ros_helper import open3d_ros_helper as orh
 import tf2_ros
-from v4r_util.util import o3d_bb_to_ros_bb, transformPointCloud
+from v4r_util.util import o3d_bb_to_ros_bb, transformPointCloud, get_minimum_oriented_bounding_box
 from vision_msgs.msg import BoundingBox3DArray
 
 
@@ -82,13 +83,9 @@ def table_plane_extractor_methode(req):
             cluster_idx = np.where(np.asarray(idx) == val)[0]
             plane_pc = inlier_cloud.select_by_index(cluster_idx)
             bb_plane = plane_pc.get_oriented_bounding_box()
-
-            # remove floor again (clustered points could be part of floor)
-            if (bb_plane.center[2] < z_min):
-                continue
-
             planes.append(Plane(a, b, c, d))
             print("Plane equation: {}x + {}y + {}z + {} = 0".format(a, b, c, d))
+            bb_plane = get_minimum_oriented_bounding_box(plane_pc)
             bb_arr.boxes.append(o3d_bb_to_ros_bb(bb_plane))
 
     return TablePlaneExtractorResponse(planes, bb_arr)

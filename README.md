@@ -98,6 +98,7 @@ stable, tested on Ubuntu 20.04 and ROS noetic.
 
 #### Fields
 ```
+Header header
 float32 x
 float32 y
 float32 z

@@ -16,6 +16,7 @@ def get_objects_on_table(req, target_frame):
            string target_frame
     Output: list[open3d.geometry.OrientedBoundingBox] bb_arr
             list[open3d.geometry.PointCloud] pc_arr
+            np.array label_img (flattened image with shape (width*height))
     '''
     try:
         # call directly as it's in the same package -> no ros overhead
@@ -37,6 +38,8 @@ def get_objects_on_table(req, target_frame):
     min_points = rospy.get_param("/get_objects_on_table/min_points")
     min_volume = rospy.get_param("/get_objects_on_table/min_volume")
     max_obj_height = rospy.get_param('/get_objects_on_table/max_obj_height')
+    # create flattened label_img
+    label_img = np.full(scene_rel_to_camera.height * scene_rel_to_camera.width, -1, dtype=np.int16)
 
     for plane_bb in response.plane_bounding_boxes.boxes:
         # transform scene pointcloud to table_plane_extractor frame
@@ -66,6 +69,7 @@ def get_objects_on_table(req, target_frame):
         labels = np.array(scene_above_table.cluster_dbscan(
             eps=eps, min_points=min_points))
         labels_unique = np.unique(labels)
+        label_img[indices] = labels 
 
         # get bounding box and pointcloud for each object
         for label in labels_unique:
@@ -76,12 +80,13 @@ def get_objects_on_table(req, target_frame):
             obj_bb = get_minimum_oriented_bounding_box(obj)
             # filter very small bounding boxes
             if obj_bb.volume() < min_volume:
+                labels[labels == label] = -1
                 continue
             pc_arr.append(obj)
             bb_arr.append(obj_bb)
-        return bb_arr, pc_arr
-    # return empty array
-    return bb_arr, pc_arr
+        return bb_arr, pc_arr, label_img
+    # no plane found -> return empty arrays
+    return [], [], []
 
 
 def get_object_bbs(req):
@@ -98,7 +103,7 @@ def get_object_bbs(req):
                               MarkerArray, queue_size=10)
 
     target_frame = rospy.get_param('/get_objects_on_table/target_frame')
-    o3d_bb_arr, o3d_pc_arr = get_objects_on_table(req, target_frame)
+    o3d_bb_arr, o3d_pc_arr, _ = get_objects_on_table(req, target_frame)
     ros_bb_arr = o3d_bb_list_to_ros_bb_arr(
         o3d_bb_arr, target_frame, rospy.get_rostime())
 
@@ -122,7 +127,7 @@ def get_object_pcs(req):
                               MarkerArray, queue_size=10)
 
     target_frame = rospy.get_param('/get_objects_on_table/target_frame')
-    o3d_bb_arr, o3d_pc_arr = get_objects_on_table(req, target_frame)
+    o3d_bb_arr, o3d_pc_arr, _ = get_objects_on_table(req, target_frame)
     ros_pc_arr = []
     for pc in o3d_pc_arr:
         ros_pc = orh.o3dpc_to_rospc(pc, target_frame, rospy.get_rostime())

@@ -2,6 +2,7 @@
 open3d
 open3d_ros_helper
 scipy>=1.4.0
+ros_numpy
 # we need the package anyways for ros so should be fine?, 
 # but might lead to problems if the v4r_util is in another ros-workspace
 -r ../v4r_util/requirements.txt

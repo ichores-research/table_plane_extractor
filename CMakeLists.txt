@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_sensor_msgs
   visualization_msgs
   v4r_util
+  robokudo_msgs
+  actionlib
 )
 
 

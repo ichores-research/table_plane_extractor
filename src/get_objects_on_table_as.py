@@ -61,12 +61,12 @@ class GetObjectsOnTableAS():
 
         res = GenericImgProcAnnotatorResult()
         unique_labels = np.unique(labels)
-        print(unique_labels)
         detected_object_count = unique_labels[unique_labels != -1].shape[0]
         res.class_ids = [-1] * detected_object_count
         res.class_names = ['Unknown'] * detected_object_count
         res.pose_results = [Pose()] * detected_object_count
         res.image = ros_numpy.msgify(Image, np_label_img, encoding='16SC1')
+
         self.server.set_succeeded(res)
 
 if __name__ == '__main__':

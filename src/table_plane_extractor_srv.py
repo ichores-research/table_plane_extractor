@@ -5,7 +5,6 @@ from table_plane_extractor.msg import Plane
 import numpy as np
 import rospy
 import open3d as o3d
-import compas.geometry.bbox as compas_bb
 from open3d_ros_helper import open3d_ros_helper as orh
 import tf2_ros
 from v4r_util.util import o3d_bb_to_ros_bb, transformPointCloud, get_minimum_oriented_bounding_box

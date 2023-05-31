@@ -69,7 +69,6 @@ def get_objects_on_table(req, target_frame):
         labels = np.array(scene_above_table.cluster_dbscan(
             eps=eps, min_points=min_points))
         labels_unique = np.unique(labels)
-        label_img[indices] = labels 
 
         # get bounding box and pointcloud for each object
         for label in labels_unique:
@@ -84,6 +83,9 @@ def get_objects_on_table(req, target_frame):
                 continue
             pc_arr.append(obj)
             bb_arr.append(obj_bb)
+
+        label_img[indices] = labels 
+
         return bb_arr, pc_arr, label_img
     # no plane found -> return empty arrays
     return [], [], []

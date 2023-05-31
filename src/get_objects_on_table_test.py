@@ -27,6 +27,7 @@ class UseGetBBOfObjectsOnTable():
             get_obj_bb = rospy.ServiceProxy('/objects_on_table/get_bounding_boxes', GetBBOfObjectsOnTable)
             response = get_obj_bb(self.cloud)
             print("done in " + str(rospy.get_time() - start) + " s")
+            print(f"detected {len(response.detected_objects.boxes)} objects.")
 
         except rospy.ServiceException as e:
             print(e)

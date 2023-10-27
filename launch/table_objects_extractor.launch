@@ -1,0 +1,7 @@
+﻿<?xml version="1.0"?>
+<launch>
+
+    <!-- Load parameters -->
+    <rosparam command="load" ns="" file="$(find table_plane_extractor)/config/config.yaml"/>
+    <node name="table_objects_extractor_server" pkg="table_plane_extractor" type="table_objects_extractor_srv.py"  output="screen"/>
+</launch>

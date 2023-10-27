@@ -1,8 +1,0 @@
-﻿<?xml version="1.0"?>
-<launch>
-
-    <!-- Load parameters -->
-    <rosparam command="load" ns="" file="$(find table_plane_extractor)/config/config.yaml"/>
-    <rosparam command="load" ns="" file="$(find table_plane_extractor)/config/config_get_obj_on_table_as.yaml"/>
-    <node name="get_objects_on_table_as" pkg="table_plane_extractor" type="get_objects_on_table_as.py"  output="screen"/>
-</launch>

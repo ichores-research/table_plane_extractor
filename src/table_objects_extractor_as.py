@@ -3,7 +3,7 @@ import numpy as np
 import rospy
 import ros_numpy
 import actionlib
-from get_objects_on_table import get_objects_on_table
+from table_objects_extractor_srv import table_objects_extractor
 from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorResult
 from table_plane_extractor.srv import GetBBOfObjectsOnTableRequest
 from sensor_msgs.msg import Image, CameraInfo
@@ -16,14 +16,15 @@ class GetObjectsOnTableAS():
 
     def __init__(self):
         self.server = actionlib.SimpleActionServer(
-            '/get_objects_on_table/get_label_image', GenericImgProcAnnotatorAction, self.get_labels_img, False)
+            '/table_objects_extractor/get_label_image', GenericImgProcAnnotatorAction, self.get_labels_img, False)
 
         self.enable_rviz_visualization = rospy.get_param(
-            '/get_objects_on_table/enable_rviz_visualization')
+            '/table_objects_extractor/enable_rviz_visualization')
         if self.enable_rviz_visualization:
             self.pub = rospy.Publisher('objectsOnTableLabelImage',
                                 Image, queue_size=10)
         self.server.start()
+        rospy.loginfo("TableObjectsExtractor: Actionserver started")
 
     def get_labels_img(self, goal):
         '''
@@ -43,7 +44,7 @@ class GetObjectsOnTableAS():
             self.server.set_aborted('Not every expected message field was passed to GetObjectsOnTableAS')
             return
         
-        ros_cam_topic = rospy.get_param('/get_objects_on_table_as/cam_info_topic')
+        ros_cam_topic = rospy.get_param('/table_objects_extractor_as/cam_info_topic')
         cam_info = rospy.wait_for_message(ros_cam_topic, CameraInfo)
 
         #TODO due to not properly seperating the tablePlaneExtractor from ROS I have to do it this way
@@ -51,11 +52,19 @@ class GetObjectsOnTableAS():
         # and wrap this method with ROS specific stuff
         req = GetBBOfObjectsOnTableRequest()
         req.point_cloud, _ = convert_ros_depth_img_to_pcd(goal.depth, cam_info, project_valid_depth_only=False)
-        o3d_bbs, _, labels = get_objects_on_table(req, goal.depth.header.frame_id)
+        o3d_bbs, _, labels = table_objects_extractor(req.point_cloud) 
+        if labels is None:
+            rospy.logerr("No objects extracted!")
+            self.server.set_aborted(None)
+            return
+        
         np_label_img = labels.reshape(goal.depth.height, goal.depth.width)
 
         if self.enable_rviz_visualization:
             np_rgb_img = ros_numpy.numpify(goal.rgb)
+            import cv2
+            cv2.imwrite("Penis.jpg", np_label_img)
+            print("Written image :3")
             color_img = convert_np_label_img_to_ros_color_img(np_label_img, np_rgb_img)
             self.pub.publish(color_img)
 
@@ -70,6 +79,6 @@ class GetObjectsOnTableAS():
         self.server.set_succeeded(res)
 
 if __name__ == '__main__':
-    rospy.init_node('get_objects_on_table_as')
+    rospy.init_node('table_objects_extractor_as')
     server = GetObjectsOnTableAS()
     rospy.spin()

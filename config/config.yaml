@@ -10,7 +10,7 @@ table_plane_extractor:
                                                 # -> should be a frame with z pointing upwards for table extractions
   z_min: 0.2                                    # min allowed z_coordinate (in m) for planes (used for filtering floor)
 
-get_objects_on_table:
+table_objects_extractor:
   cluster_dbscan_eps: 0.01                      # density parameter (in m) that is used to find neighbouring points 
                                                 # for object segmentation
   min_points: 50                                # minimum number of points to form a valid object-cluster
@@ -18,3 +18,6 @@ get_objects_on_table:
   target_frame: base_link                       # results are returned relative to this frame
   max_obj_height: 0.4                           # maximum height of object (in m)
   enable_rviz_visualization: True               # enables visualization of bounding boxes in rviz (topic: objectsOnTableVisualizer)
+
+table_objects_extractor_as:
+  cam_info_topic: /hsrb/head_rgbd_sensor/depth_registered/camera_info

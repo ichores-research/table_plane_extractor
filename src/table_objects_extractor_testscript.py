@@ -18,13 +18,13 @@ class UseGetBBOfObjectsOnTable():
         sub = rospy.Subscriber(topic, PointCloud2, self.pc_cb)
         print("waiting for pointcloud message")
         rospy.wait_for_message(topic, PointCloud2)
-        print("waiting for objects_on_table/get_bounding_boxes service")
-        rospy.wait_for_service('/objects_on_table/get_bounding_boxes')
+        print("waiting for table_objects_extractor/get_bounding_boxes service")
+        rospy.wait_for_service('/table_objects_extractor/get_bounding_boxes')
         try:
             print("calling service")
             rospy.set_param('/table_objects_extractor/enable_rviz_visualization', True)
             start = rospy.get_time()
-            get_obj_bb = rospy.ServiceProxy('/objects_on_table/get_bounding_boxes', GetBBOfObjectsOnTable)
+            get_obj_bb = rospy.ServiceProxy('/table_objects_extractor/get_bounding_boxes', GetBBOfObjectsOnTable)
             response = get_obj_bb(self.cloud)
             print("done in " + str(rospy.get_time() - start) + " s")
             print(f"detected {len(response.detected_objects.boxes)} objects.")
@@ -46,11 +46,11 @@ class UseGetPCOfObjectsOnTable():
         print("waiting for pointcloud message")
         rospy.wait_for_message(topic, PointCloud2)
         print("waiting for table_objects_extractor/get_bounding_boxes service")
-        rospy.wait_for_service('/objects_on_table/get_bounding_boxes')
+        rospy.wait_for_service('/table_objects_extractor/get_bounding_boxes')
         try:
             # use service
             print("calling service")
-            get_obj_pc = rospy.ServiceProxy('/objects_on_table/get_point_clouds', GetPCOfObjectsOnTable)
+            get_obj_pc = rospy.ServiceProxy('/table_objects_extractor/get_point_clouds', GetPCOfObjectsOnTable)
             response = get_obj_pc(self.cloud)
             for pc in response.detected_objects:
                 o3d_pc = orh.rospc_to_o3dpc(pc, True)

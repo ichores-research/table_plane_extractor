@@ -129,13 +129,13 @@ def get_object_pcs(req):
 def table_objects_extractor_server():
     '''
     Starts table_objects_extractor services
-    Topics: /objects_on_table/get_bounding_boxes
-            /objects_on_table/get_point_clouds
+    Topics: /table_objects_extractor/get_bounding_boxes
+            /table_objects_extractor/get_point_clouds
     '''
     rospy.init_node('table_objects_extractor')
-    s_bb = rospy.Service('/objects_on_table/get_bounding_boxes',
+    s_bb = rospy.Service('/table_objects_extractor/get_bounding_boxes',
                          GetBBOfObjectsOnTable, get_object_bbs)
-    s_pc = rospy.Service('/objects_on_table/get_point_clouds',
+    s_pc = rospy.Service('/table_objects_extractor/get_point_clouds',
                          GetPCOfObjectsOnTable, get_object_pcs)
     print("Ready to detect objects on table plane.")
     rospy.spin()

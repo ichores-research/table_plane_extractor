@@ -6,7 +6,7 @@ from table_plane_extractor.srv import GetBBOfObjectsOnTable, GetPCOfObjectsOnTab
 from sensor_msgs.msg import PointCloud2
 
 # result_type = 'bb'
-result_type = 'pc'
+result_type = 'bb'
 
 class UseGetBBOfObjectsOnTable():
     ''' Example of using the table_objects_extractor service. '''

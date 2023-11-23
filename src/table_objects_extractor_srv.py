@@ -16,7 +16,7 @@ import numpy as np
 from visualization_msgs.msg import MarkerArray, Marker
 from v4r_util.util import  o3d_bb_to_ros_bb
 from vision_msgs.msg import BoundingBox3DArray
-
+from itertools import chain
 
 class rviz_visualizer:
     def __init__(self, topic="TablePlaneExtractorVisualizer"):
@@ -24,6 +24,7 @@ class rviz_visualizer:
             topic, 
             MarkerArray, 
             queue_size=10)
+        self.markers = {}
 
     def publish_ros_bb(self, ros_bb, namespace="", clear_old_markers=True):
         marker_arr = self.ros_bb_arr_to_rviz_marker_arr([ros_bb], namespace, clear_old_markers)
@@ -60,6 +61,21 @@ class rviz_visualizer:
         marker.color.a = 0.6
         return marker
     
+    def clear_markers(self, namespace):
+        '''
+        Publishes a delete_all marker to clear all rviz markers with the given namespace.
+        '''
+        marker_arr = MarkerArray()
+        marker = Marker()
+        marker.ns = namespace
+        marker.action = marker.DELETEALL
+        marker_arr.markers.append(marker)
+
+        del self.markers[namespace]
+        l = [marker for marker_list in self.markers.values() for marker in marker_list.markers]
+        marker_arr.markers += l
+        self.pub.publish(marker_arr)
+
     def ros_bb_arr_to_rviz_marker_arr(self, ros_bb_arr, namespace, clear_old_markers=True):
         '''
         Converts BoundingBox3DArray into rviz MarkerArray. If clear_old_markers is set, a delete_all marker
@@ -72,16 +88,18 @@ class rviz_visualizer:
         marker_arr = MarkerArray()
         marker_arr.markers = []
         if clear_old_markers:
-            marker_delete_all = Marker()
-            marker_delete_all.ns = namespace
-            marker_delete_all.action = marker_delete_all.DELETEALL
-            marker_arr.markers.append(marker_delete_all)
+            if namespace in self.markers:
+                self.clear_markers(namespace)
 
         # add marker for each detected object
         for i, obj in enumerate(ros_bb_arr.boxes):
             marker = self.ros_bb_to_rviz_marker(obj, namespace, i, ros_bb_arr.header)
             marker_arr.markers.append(marker)
+
+        self.markers[namespace] = marker_arr
+
         return marker_arr
+
     
 def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
     '''
@@ -91,17 +109,15 @@ def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
             np.array label_img (flattened image with shape (width*height))
     '''
     
-
-
     base_frame = rospy.get_param("/table_plane_extractor/base_frame")
     enable_rviz_visualization = rospy.get_param(
         '/table_objects_extractor/enable_rviz_visualization')
     
     if enable_rviz_visualization:
         rviz_vis = rviz_visualizer('TablePlaneExtractorVisualizer')   
-         
+
     tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer)
+    tf2_ros.TransformListener(tf_buffer)
 
     pcd = ros_pcd
     height = pcd.height
@@ -127,8 +143,6 @@ def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
     distance_threshold = rospy.get_param(
         "/table_plane_extractor/plane_segmentation_distance_threshold")
 
-
-    print('hello3')
     planes, bboxes = extract_table_planes_from_pcd(
         pcd_downsampled, 
         cluster_dbscan_eps, 
@@ -136,8 +150,6 @@ def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
         distance_threshold, 
         max_angle_deg, 
         z_min)
-
-    print('hello4')
 
     eps = rospy.get_param("/table_objects_extractor/cluster_dbscan_eps")
     min_points = rospy.get_param("/table_objects_extractor/min_points")
@@ -154,12 +166,11 @@ def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
         height,
         width)
     
-    print('hello5')
-
     if enable_rviz_visualization:
         rviz_vis.publish_o3d_bb_arr(bboxes, header, "table_plane")
         rviz_vis.publish_o3d_bb_arr(bb_arr, header, "objects_on_table")
-        rviz_vis.publish_o3d_bb_arr(bboxes, header, "table_plane")
+        rospy.sleep(3.)
+        rviz_vis.clear_markers("table_plane")
 
     return bb_arr, pc_arr, label_img
 

@@ -101,7 +101,7 @@ class rviz_visualizer:
         return marker_arr
 
     
-def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
+def table_objects_extractor(pcd): #TODO remove target frame also from config
     '''
     Returns bounding boxes and pointclouds of objects found on a table plane.
     Output: list[open3d.geometry.OrientedBoundingBox] bb_arr
@@ -109,64 +109,49 @@ def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
             np.array label_img (flattened image with shape (width*height))
     '''
     
-    base_frame = rospy.get_param("/table_plane_extractor/base_frame")
-    enable_rviz_visualization = rospy.get_param(
-        '/table_objects_extractor/enable_rviz_visualization')
+    object_params = rospy.get_param("table_objects_extractor")
+    table_params = rospy.get_param("table_plane_extractor")
     
-    if enable_rviz_visualization:
+    if table_params["enable_rviz_visualization"]:
         rviz_vis = rviz_visualizer('TablePlaneExtractorVisualizer')   
 
     tf_buffer = tf2_ros.Buffer()
     tf2_ros.TransformListener(tf_buffer)
 
-    pcd = ros_pcd
     height = pcd.height
     width = pcd.width
-
-    pcd = transformPointCloud(pcd, base_frame, pcd.header.frame_id, tf_buffer) #make sure pointcloud has z pointing up
+    
+    #make sure pointcloud has z pointing up
+    pcd = transformPointCloud(pcd, table_params['base_frame'], pcd.header.frame_id, tf_buffer) 
 
     header = pcd.header
-    pcd_with_nans = orh.rospc_to_o3dpc(pcd, remove_nans=False)#TODO why does tableplaneextractor die with nans
+
+    pcd_with_nans = orh.rospc_to_o3dpc(pcd, remove_nans=False) #TODO why does tableplaneextractor die with nans
     pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
 
     # downsample cloud
-    downsample_vox_size = rospy.get_param(
-        "/table_plane_extractor/downsample_vox_size")
-    pcd_downsampled = pcd.voxel_down_sample(voxel_size=downsample_vox_size)
+    pcd_downsampled = pcd.voxel_down_sample(
+        voxel_size=table_params["downsample_vox_size"])
 
-    cluster_dbscan_eps = rospy.get_param(
-        "/table_plane_extractor/cluster_dbscan_eps")
-    min_cluster_size = rospy.get_param(
-        "/table_plane_extractor/min_cluster_size")
-    max_angle_deg = rospy.get_param("/table_plane_extractor/max_angle_deg")
-    z_min = rospy.get_param("/table_plane_extractor/z_min")
-    distance_threshold = rospy.get_param(
-        "/table_plane_extractor/plane_segmentation_distance_threshold")
-
-    planes, bboxes = extract_table_planes_from_pcd(
+    _, bboxes = extract_table_planes_from_pcd(
         pcd_downsampled, 
-        cluster_dbscan_eps, 
-        min_cluster_size, 
-        distance_threshold, 
-        max_angle_deg, 
-        z_min)
-
-    eps = rospy.get_param("/table_objects_extractor/cluster_dbscan_eps")
-    min_points = rospy.get_param("/table_objects_extractor/min_points")
-    min_volume = rospy.get_param("/table_objects_extractor/min_volume")
-    max_obj_height = rospy.get_param('/table_objects_extractor/max_obj_height')
+        table_params["cluster_dbscan_eps"], 
+        table_params["min_cluster_size"], 
+        table_params["plane_segmentation_distance_threshold"], 
+        table_params["max_angle_deg"],
+        table_params["z_min"])
 
     bb_arr, pc_arr, label_img = extract_objects_from_tableplane(
         pcd_with_nans, 
         copy.deepcopy(bboxes),
-        eps, 
-        min_points, 
-        min_volume, 
-        max_obj_height,
+        object_params["cluster_dbscan_eps"], 
+        object_params["min_points"], 
+        object_params["min_volume"], 
+        object_params["max_obj_height"],
         height,
         width)
     
-    if enable_rviz_visualization:
+    if table_params["enable_rviz_visualization"]:
         rviz_vis.publish_o3d_bb_arr(bboxes, header, "table_plane")
         rviz_vis.publish_o3d_bb_arr(bb_arr, header, "objects_on_table")
         rospy.sleep(3.)

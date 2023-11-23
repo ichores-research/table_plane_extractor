@@ -3,12 +3,86 @@ from open3d_ros_helper import open3d_ros_helper as orh
 import rospy
 import numpy as np
 import tf2_ros
-from visualization_msgs.msg import MarkerArray
-from v4r_util.util import transformPointCloud, o3d_bb_list_to_ros_bb_arr, ros_bb_arr_to_rviz_marker_arr
+import copy
+from v4r_util.util import transformPointCloud, o3d_bb_list_to_ros_bb_arr
+#from v4r_util.rviz_visualizer import rviz_visualizer
 from table_plane_extractor.srv import GetBBOfObjectsOnTable, GetBBOfObjectsOnTableResponse, GetPCOfObjectsOnTable, GetPCOfObjectsOnTableResponse
 from extractor_of_table_planes import extract_table_planes_from_pcd
 from extractor_of_table_objects import extract_objects_from_tableplane
+from vision_msgs.msg import BoundingBox3DArray
 
+import rospy
+import numpy as np
+from visualization_msgs.msg import MarkerArray, Marker
+from v4r_util.util import  o3d_bb_to_ros_bb
+from vision_msgs.msg import BoundingBox3DArray
+
+
+class rviz_visualizer:
+    def __init__(self, topic="TablePlaneExtractorVisualizer"):
+        self.pub = rospy.Publisher(
+            topic, 
+            MarkerArray, 
+            queue_size=10)
+
+    def publish_ros_bb(self, ros_bb, namespace="", clear_old_markers=True):
+        marker_arr = self.ros_bb_arr_to_rviz_marker_arr([ros_bb], namespace, clear_old_markers)
+        self.pub.publish(marker_arr)
+
+    def publish_ros_bb_arr(self, ros_bb_arr, namespace="", clear_old_markers=True):
+        marker_arr = self.ros_bb_arr_to_rviz_marker_arr(ros_bb_arr, namespace, clear_old_markers)
+        self.pub.publish(marker_arr)
+
+
+    def publish_o3d_bb_arr(self, o3d_bb_arr, header, namespace="", clear_old_markers=True):
+        ros_bb_arr = BoundingBox3DArray()
+        ros_bb_arr.header = header
+        ros_bb_arr.boxes = [o3d_bb_to_ros_bb(bb) for bb in o3d_bb_arr]
+        marker_arr = self.ros_bb_arr_to_rviz_marker_arr(ros_bb_arr, namespace, clear_old_markers)
+        self.pub.publish(marker_arr)
+
+    def ros_bb_to_rviz_marker(self, ros_bb, namespace="", id=0, header=None):
+        '''
+        Converts BoundingBox3D to rviz Marker.
+        Input: vision_msgs/BoundingBox3D ros_bb
+        Output: visualization_msgs/Marker marker
+        '''
+        marker = Marker()
+        marker.header.frame_id = header.frame_id
+        marker.header.stamp = rospy.get_rostime()
+        marker.ns = namespace
+        marker.id = id
+        marker.type = marker.CUBE
+        marker.action = marker.ADD
+        marker.pose = ros_bb.center
+        marker.scale = ros_bb.size
+        marker.color.g = 1.0
+        marker.color.a = 0.6
+        return marker
+    
+    def ros_bb_arr_to_rviz_marker_arr(self, ros_bb_arr, namespace, clear_old_markers=True):
+        '''
+        Converts BoundingBox3DArray into rviz MarkerArray. If clear_old_markers is set, a delete_all marker
+        is added as the first marker so that old rviz markers get cleared.
+        Input: vision_msgs/BoundingBox3DArray ros_bb_arr
+            bool clear_old_markers
+        Output: visualization_msgs/MarkerArray marker_arr
+        '''
+        # add delete_all as the first marker so that old markers are cleared
+        marker_arr = MarkerArray()
+        marker_arr.markers = []
+        if clear_old_markers:
+            marker_delete_all = Marker()
+            marker_delete_all.ns = namespace
+            marker_delete_all.action = marker_delete_all.DELETEALL
+            marker_arr.markers.append(marker_delete_all)
+
+        # add marker for each detected object
+        for i, obj in enumerate(ros_bb_arr.boxes):
+            marker = self.ros_bb_to_rviz_marker(obj, namespace, i, ros_bb_arr.header)
+            marker_arr.markers.append(marker)
+        return marker_arr
+    
 def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
     '''
     Returns bounding boxes and pointclouds of objects found on a table plane.
@@ -16,18 +90,25 @@ def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
             list[open3d.geometry.PointCloud] pc_arr
             np.array label_img (flattened image with shape (width*height))
     '''
+    
 
 
     base_frame = rospy.get_param("/table_plane_extractor/base_frame")
-
+    enable_rviz_visualization = rospy.get_param(
+        '/table_objects_extractor/enable_rviz_visualization')
+    
+    if enable_rviz_visualization:
+        rviz_vis = rviz_visualizer('TablePlaneExtractorVisualizer')   
+         
     tf_buffer = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf_buffer)
 
-    # get pointcloud and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
     pcd = ros_pcd
     height = pcd.height
     width = pcd.width
+
     pcd = transformPointCloud(pcd, base_frame, pcd.header.frame_id, tf_buffer) #make sure pointcloud has z pointing up
+
     header = pcd.header
     pcd_with_nans = orh.rospc_to_o3dpc(pcd, remove_nans=False)#TODO why does tableplaneextractor die with nans
     pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
@@ -46,13 +127,17 @@ def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
     distance_threshold = rospy.get_param(
         "/table_plane_extractor/plane_segmentation_distance_threshold")
 
+
+    print('hello3')
     planes, bboxes = extract_table_planes_from_pcd(
         pcd_downsampled, 
         cluster_dbscan_eps, 
         min_cluster_size, 
         distance_threshold, 
         max_angle_deg, 
-        z_min)    
+        z_min)
+
+    print('hello4')
 
     eps = rospy.get_param("/table_objects_extractor/cluster_dbscan_eps")
     min_points = rospy.get_param("/table_objects_extractor/min_points")
@@ -61,13 +146,21 @@ def table_objects_extractor(ros_pcd): #TODO remove target frame also from config
 
     bb_arr, pc_arr, label_img = extract_objects_from_tableplane(
         pcd_with_nans, 
-        bboxes, 
+        copy.deepcopy(bboxes),
         eps, 
         min_points, 
         min_volume, 
         max_obj_height,
         height,
         width)
+    
+    print('hello5')
+
+    if enable_rviz_visualization:
+        rviz_vis.publish_o3d_bb_arr(bboxes, header, "table_plane")
+        rviz_vis.publish_o3d_bb_arr(bb_arr, header, "objects_on_table")
+        rviz_vis.publish_o3d_bb_arr(bboxes, header, "table_plane")
+
     return bb_arr, pc_arr, label_img
 
 
@@ -78,21 +171,12 @@ def get_object_bbs(req):
     Input: sensor_msgs/PointCloud2 scene
     Output: vision_msgs/BoundingBox3DArray detected_objects
     '''
-    enable_rviz_visualization = rospy.get_param(
-        '/table_objects_extractor/enable_rviz_visualization')
-    if enable_rviz_visualization:
-        pub = rospy.Publisher('objectsOnTableVisualizer',
-                              MarkerArray, queue_size=10)
 
     base_frame = rospy.get_param("/table_plane_extractor/base_frame")
-
-    o3d_bb_arr, o3d_pc_arr, _ = table_objects_extractor(req.point_cloud)
+    
+    o3d_bb_arr, _, _ = table_objects_extractor(req.point_cloud)
     ros_bb_arr = o3d_bb_list_to_ros_bb_arr(
         o3d_bb_arr, base_frame, rospy.get_rostime())
-
-    if enable_rviz_visualization:
-        marker_arr = ros_bb_arr_to_rviz_marker_arr(ros_bb_arr)
-        pub.publish(marker_arr)
 
     return GetBBOfObjectsOnTableResponse(ros_bb_arr)
 
@@ -103,25 +187,14 @@ def get_object_pcs(req):
         Input: sensor_msgs/PointCloud2 scene
         Output: sensor_msgs/PointCloud2[] detected_objects
     '''
-    enable_rviz_visualization = rospy.get_param(
-        '/table_objects_extractor/enable_rviz_visualization')
-    if enable_rviz_visualization:
-        pub = rospy.Publisher('objectsOnTableVisualizer',
-                              MarkerArray, queue_size=10)
-
     base_frame = rospy.get_param("/table_plane_extractor/base_frame")
 
-    o3d_bb_arr, o3d_pc_arr, _ = table_objects_extractor(req.point_cloud)
+    _, o3d_pc_arr, _ = table_objects_extractor(req.point_cloud)
+
     ros_pc_arr = []
     for pc in o3d_pc_arr:
         ros_pc = orh.o3dpc_to_rospc(pc, base_frame, rospy.get_rostime())
         ros_pc_arr.append(ros_pc)
-
-    if enable_rviz_visualization:
-        ros_bb_arr = o3d_bb_list_to_ros_bb_arr(
-            o3d_bb_arr, base_frame, rospy.get_rostime())
-        marker_arr = ros_bb_arr_to_rviz_marker_arr(ros_bb_arr)
-        pub.publish(marker_arr)
 
     return GetPCOfObjectsOnTableResponse(ros_pc_arr)
 

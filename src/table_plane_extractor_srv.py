@@ -23,20 +23,19 @@ def table_plane_extractor_methode(req):
     Input: sensor_msgs/PointCloud2 inputCloud
     Output: table_plane_extractor/Plane[] planes, vision_msgs/BoundingBox3DArray plane_bounding_boxes
     '''
-    enable_rviz_visualization = rospy.get_param(
-        '/table_objects_extractor/enable_rviz_visualization')
-    base_frame = rospy.get_param("/table_plane_extractor/base_frame")
 
-    if enable_rviz_visualization:
+    table_params = rospy.get_param("table_plane_extractor")
+
+    if table_params['enable_rviz_visualization']:
         pub = rospy.Publisher('PlaneBoundingBoxVisualizer',
                               MarkerArray, queue_size=10)
 
     tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer)
+    tf2_ros.TransformListener(tf_buffer)
 
     # get pointcloud and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
     pcd = req.point_cloud
-    pcd = transformPointCloud(pcd, base_frame, pcd.header.frame_id, tf_buffer) #make sure pointcloud has z pointing up
+    pcd = transformPointCloud(pcd, table_params['base_frame'], pcd.header.frame_id, tf_buffer) #make sure pointcloud has z pointing up
     header = pcd.header
     pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
 
@@ -48,23 +47,21 @@ def table_plane_extractor_methode(req):
     bb_arr = BoundingBox3DArray()
     bb_arr.header = header
 
-    cluster_dbscan_eps = rospy.get_param(
-        "/table_plane_extractor/cluster_dbscan_eps")
-    min_cluster_size = rospy.get_param(
-        "/table_plane_extractor/min_cluster_size")
-    max_angle_deg = rospy.get_param("/table_plane_extractor/max_angle_deg")
-    z_min = rospy.get_param("/table_plane_extractor/z_min")
-    distance_threshold = rospy.get_param(
-        "/table_plane_extractor/plane_segmentation_distance_threshold")
 
-    planes, bboxes = extract_table_planes_from_pcd(pcd, cluster_dbscan_eps, min_cluster_size, distance_threshold, max_angle_deg, z_min)
+
+    planes, bboxes = extract_table_planes_from_pcd(
+        pcd, 
+        table_params["cluster_dbscan_eps"], 
+        table_params["min_cluster_size"], 
+        table_params["plane_segmentation_distance_threshold"], 
+        table_params["max_angle_deg"], 
+        table_params["z_min"])
     
-    planes_ros = [Plane(Header(0, header.stamp, base_frame), a, b, c, d) for a, b, c, d in planes]
+    planes_ros = [Plane(Header(0, header.stamp, table_params['base_frame']), a, b, c, d) for a, b, c, d in planes]
     bb_arr.boxes = [o3d_bb_to_ros_bb(bb_plane) for bb_plane in bboxes]
 
-    if enable_rviz_visualization:
-        marker_arr = ros_bb_arr_to_rviz_marker_arr(
-            bb_arr)
+    if table_params['enable_rviz_visualization']:
+        marker_arr = ros_bb_arr_to_rviz_marker_arr(bb_arr)
         pub.publish(marker_arr)
     return TablePlaneExtractorResponse(planes_ros, bb_arr)
 

@@ -5,102 +5,13 @@ import numpy as np
 import tf2_ros
 import copy
 from v4r_util.util import transformPointCloud, o3d_bb_list_to_ros_bb_arr
-#from v4r_util.rviz_visualizer import rviz_visualizer
+from v4r_util.rviz_visualizer import RvizVisualizer
 from table_plane_extractor.srv import GetBBOfObjectsOnTable, GetBBOfObjectsOnTableResponse, GetPCOfObjectsOnTable, GetPCOfObjectsOnTableResponse
 from extractor_of_table_planes import extract_table_planes_from_pcd
 from extractor_of_table_objects import extract_objects_from_tableplane
 from vision_msgs.msg import BoundingBox3DArray
 
-import rospy
-import numpy as np
-from visualization_msgs.msg import MarkerArray, Marker
-from v4r_util.util import  o3d_bb_to_ros_bb
-from vision_msgs.msg import BoundingBox3DArray
-from itertools import chain
 
-class rviz_visualizer:
-    def __init__(self, topic="TablePlaneExtractorVisualizer"):
-        self.pub = rospy.Publisher(
-            topic, 
-            MarkerArray, 
-            queue_size=10)
-        self.markers = {}
-
-    def publish_ros_bb(self, ros_bb, namespace="", clear_old_markers=True):
-        marker_arr = self.ros_bb_arr_to_rviz_marker_arr([ros_bb], namespace, clear_old_markers)
-        self.pub.publish(marker_arr)
-
-    def publish_ros_bb_arr(self, ros_bb_arr, namespace="", clear_old_markers=True):
-        marker_arr = self.ros_bb_arr_to_rviz_marker_arr(ros_bb_arr, namespace, clear_old_markers)
-        self.pub.publish(marker_arr)
-
-
-    def publish_o3d_bb_arr(self, o3d_bb_arr, header, namespace="", clear_old_markers=True):
-        ros_bb_arr = BoundingBox3DArray()
-        ros_bb_arr.header = header
-        ros_bb_arr.boxes = [o3d_bb_to_ros_bb(bb) for bb in o3d_bb_arr]
-        marker_arr = self.ros_bb_arr_to_rviz_marker_arr(ros_bb_arr, namespace, clear_old_markers)
-        self.pub.publish(marker_arr)
-
-    def ros_bb_to_rviz_marker(self, ros_bb, namespace="", id=0, header=None):
-        '''
-        Converts BoundingBox3D to rviz Marker.
-        Input: vision_msgs/BoundingBox3D ros_bb
-        Output: visualization_msgs/Marker marker
-        '''
-        marker = Marker()
-        marker.header.frame_id = header.frame_id
-        marker.header.stamp = rospy.get_rostime()
-        marker.ns = namespace
-        marker.id = id
-        marker.type = marker.CUBE
-        marker.action = marker.ADD
-        marker.pose = ros_bb.center
-        marker.scale = ros_bb.size
-        marker.color.g = 1.0
-        marker.color.a = 0.6
-        return marker
-    
-    def clear_markers(self, namespace):
-        '''
-        Publishes a delete_all marker to clear all rviz markers with the given namespace.
-        '''
-        marker_arr = MarkerArray()
-        marker = Marker()
-        marker.ns = namespace
-        marker.action = marker.DELETEALL
-        marker_arr.markers.append(marker)
-
-        del self.markers[namespace]
-        l = [marker for marker_list in self.markers.values() for marker in marker_list.markers]
-        marker_arr.markers += l
-        self.pub.publish(marker_arr)
-
-    def ros_bb_arr_to_rviz_marker_arr(self, ros_bb_arr, namespace, clear_old_markers=True):
-        '''
-        Converts BoundingBox3DArray into rviz MarkerArray. If clear_old_markers is set, a delete_all marker
-        is added as the first marker so that old rviz markers get cleared.
-        Input: vision_msgs/BoundingBox3DArray ros_bb_arr
-            bool clear_old_markers
-        Output: visualization_msgs/MarkerArray marker_arr
-        '''
-        # add delete_all as the first marker so that old markers are cleared
-        marker_arr = MarkerArray()
-        marker_arr.markers = []
-        if clear_old_markers:
-            if namespace in self.markers:
-                self.clear_markers(namespace)
-
-        # add marker for each detected object
-        for i, obj in enumerate(ros_bb_arr.boxes):
-            marker = self.ros_bb_to_rviz_marker(obj, namespace, i, ros_bb_arr.header)
-            marker_arr.markers.append(marker)
-
-        self.markers[namespace] = marker_arr
-
-        return marker_arr
-
-    
 def table_objects_extractor(pcd): #TODO remove target frame also from config
     '''
     Returns bounding boxes and pointclouds of objects found on a table plane.
@@ -113,7 +24,7 @@ def table_objects_extractor(pcd): #TODO remove target frame also from config
     table_params = rospy.get_param("table_plane_extractor")
     
     if table_params["enable_rviz_visualization"]:
-        rviz_vis = rviz_visualizer('TablePlaneExtractorVisualizer')   
+        rviz_vis = RvizVisualizer('TablePlaneExtractorVisualizer')   
 
     tf_buffer = tf2_ros.Buffer()
     tf2_ros.TransformListener(tf_buffer)
@@ -155,7 +66,7 @@ def table_objects_extractor(pcd): #TODO remove target frame also from config
         rviz_vis.publish_o3d_bb_arr(bboxes, header, "table_plane")
         rviz_vis.publish_o3d_bb_arr(bb_arr, header, "objects_on_table")
         rospy.sleep(3.)
-        rviz_vis.clear_markers("table_plane")
+        rviz_vis.clear_markers("plane")
 
     return bb_arr, pc_arr, label_img
 

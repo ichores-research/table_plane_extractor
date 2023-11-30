@@ -3,8 +3,9 @@
 from math import atan, pi
 import numpy as np
 import open3d as o3d
+import matplotlib.pyplot as plt
 
-def extract_table_planes_from_pcd(pcd, cluster_dbscan_eps = 0.15, min_cluster_size = 200, distance_threshold = 0.01, max_angle_deg = 5, z_min = 0.2):
+def extract_table_planes_from_pcd(pcd, cluster_dbscan_eps = 0.15, min_cluster_size = 200, distance_threshold = 0.01, max_angle_deg = 5, z_min = 0.2, num_iter_ransac = 1000):
     '''
     Extract possible horizontal planes from the point cloud.
     
@@ -21,6 +22,8 @@ def extract_table_planes_from_pcd(pcd, cluster_dbscan_eps = 0.15, min_cluster_si
         list: List of oriented bounding boxes (Open3D geometry objects) around the detected planes.
     '''
     
+    #o3d.io.write_point_cloud("/root/HSR/catkin_ws/test_as.pcd", pcd)
+
     planes = []
     bboxes = []
 
@@ -29,35 +32,90 @@ def extract_table_planes_from_pcd(pcd, cluster_dbscan_eps = 0.15, min_cluster_si
     points = np.array(pcd.points)
     floor = points[:, 2] < z_min
     pcd.points = o3d.utility.Vector3dVector(points[floor == 0])
-    while len(pcd.points) > min_cluster_size:
-        plane_model, inliers = pcd.segment_plane(distance_threshold=distance_threshold,
-                                                 ransac_n=3,
-                                                 num_iterations=1000)
-        # ax + by + cz + d = 0
-        [a, b, c, d] = plane_model
 
-        # remove non-horizontal-planes
-        # z = (-ax - by - d)/c -> gradient = (-a/c, -b/c)
-        if (abs(atan(-a/c)) > max_angle_rad or abs(atan(-b/c)) > max_angle_rad):
-            pcd = pcd.select_by_index(inliers, invert=True)
+
+    label_vec = np.array(pcd.cluster_dbscan(eps=0.2, min_points=10))
+
+    # Visualize the clustered point cloud in Open3D
+    # max_label = label_vec.max()
+    #colors = plt.cm.get_cmap("tab20")(label_vec / (max_label if max_label > 0 else 1))
+    # pcd.colors = o3d.utility.Vector3dVector(colors[:, :3])
+    # o3d.visualization.draw_geometries([pcd])
+
+    labels, counts = np.unique(label_vec, return_counts=True)
+
+    for label in labels:
+        if label == -1:
             continue
 
-        inlier_cloud = pcd.select_by_index(inliers)
-        pcd = pcd.select_by_index(inliers, invert=True)
-        # segment plane-pointcloud because multiple objects could potentially align with the same plane
-        idx = inlier_cloud.cluster_dbscan(cluster_dbscan_eps, min_cluster_size)
-        values = np.unique(idx)
-        for val in values:
-            if val == -1:
+        if counts[label] < 70:
+            continue
+
+        cluster_idx = np.where(np.asarray(label_vec) == label)[0]
+        cluster = pcd.select_by_index(cluster_idx)
+
+        cluster_pcd = cluster
+        while len(cluster_pcd.points) > min_cluster_size:
+            plane_model, inliers = cluster_pcd.segment_plane(distance_threshold=distance_threshold,
+                                                    ransac_n=3,
+                                                    num_iterations=num_iter_ransac)
+            # ax + by + cz + d = 0
+            [a, b, c, d] = plane_model
+
+            # remove non-horizontal-planes
+            # z = (-ax - by - d)/c -> gradient = (-a/c, -b/c)
+            if (abs(atan(-a/c)) > max_angle_rad or abs(atan(-b/c)) > max_angle_rad):
+                cluster_pcd = cluster_pcd.select_by_index(inliers, invert=True)
                 continue
-            # select clustered plane cloud
-            cluster_idx = np.where(np.asarray(idx) == val)[0]
-            plane_pc = inlier_cloud.select_by_index(cluster_idx)
-            bb_plane = plane_pc.get_oriented_bounding_box()
-            planes.append((a,b,c,d))
 
+            inlier_cloud = cluster_pcd.select_by_index(inliers)
+            cluster_pcd = cluster_pcd.select_by_index(inliers, invert=True)
+            # segment plane-pointcloud because multiple objects could potentially align with the same plane
+            idx = inlier_cloud.cluster_dbscan(cluster_dbscan_eps, min_cluster_size)
+            vals = np.unique(idx)
+            for val in vals:
+                if val == -1:
+                    continue
+                # select clustered plane cloud
+                cluster_idx = np.where(np.asarray(idx) == val)[0]
+                plane_pc = inlier_cloud.select_by_index(cluster_idx)
+                #o3d.visualization.draw_geometries([plane_pc])
+                bb_plane = plane_pc.get_oriented_bounding_box()
+                planes.append((a,b,c,d))
 
-            print("Plane equation: {}x + {}y + {}z + {} = 0".format(a, b, c, d))
-            bb_plane = plane_pc.get_minimal_oriented_bounding_box(robust=True)
-            bboxes.append(bb_plane)
+                #print("Plane equation: {}x + {}y + {}z + {} = 0".format(a, b, c, d))
+                bb_plane = plane_pc.get_minimal_oriented_bounding_box(robust=True)
+                bboxes.append(bb_plane)
     return planes, bboxes
+
+
+if __name__ == "__main__":
+    pcd = o3d.io.read_point_cloud("/root/HSR/catkin_ws/test_case.pcd")
+    print("Loaded point cloud with {} points".format(len(pcd.points)))
+
+    cluster_dbscan_eps = 0.15
+    min_cluster_size = 200
+    distance_threshold = 0.01
+    max_angle_deg = 5
+    z_min = 0.2
+    num_iter_ransac = 1000
+
+    plane_count = []
+    for i in range(100):
+        print(i)
+        planes, bboxes = extract_table_planes_from_pcd(pcd, cluster_dbscan_eps, min_cluster_size, distance_threshold, max_angle_deg, z_min, num_iter_ransac)
+        plane_count.append(len(planes))
+    print("Average number of planes: {}".format(np.mean(plane_count)))
+    print("Standard deviation: {}".format(np.std(plane_count)))
+    sd = np.std(plane_count)
+    mean_plane_count = np.mean(plane_count)
+    unique_values, counts = np.unique(plane_count, return_counts=True)
+
+
+    plt.bar(unique_values, counts)
+    plt.axvline(mean_plane_count, color='r', linestyle='dashed', linewidth=2, label='Mean')
+    plt.xlabel('Unique Values')
+    plt.ylabel('Counts')
+    plt.title('Count of Unique Values in plane_count')
+    plt.legend()
+    plt.savefig(f'/root/HSR/catkin_ws/planes_{cluster_dbscan_eps}_{min_cluster_size}_{distance_threshold}_{max_angle_deg}_{z_min}_{num_iter_ransac}.png')

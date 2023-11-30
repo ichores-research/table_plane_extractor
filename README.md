@@ -78,6 +78,15 @@ Action server that returns a LabelImage for objects found on the table plane
 **Input/Output:**
 robokudo_msgs/action/GenericImgProcAnnotator
 
+```
+sensor_msgs/Image rgb, 
+sensor_msgs/Image depth
+---
+int32[] class_ids, 
+string[] class_names, 
+sensor_msgs/Image image
+```
+
 **File:**
 ```
 src/table_objects_extractor_as.py

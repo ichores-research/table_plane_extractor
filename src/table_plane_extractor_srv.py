@@ -52,7 +52,14 @@ def table_plane_extractor_methode(req):
         table_params["max_angle_deg"], 
         table_params["z_min"])
     
-    planes_ros = [Plane(Header(0, header.stamp, table_params['base_frame']), a, b, c, d) for a, b, c, d in planes]
+    if planes is None:
+        rospy.logerr("No planes found!")
+        return None, None
+    
+    planes_ros = [
+        Plane(
+            Header(0, header.stamp, table_params['base_frame']), 
+            a, b, c, d) for a, b, c, d in planes]
 
     bb_arr = BoundingBox3DArray()
     bb_arr.header = header

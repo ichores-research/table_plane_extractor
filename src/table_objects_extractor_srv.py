@@ -33,11 +33,14 @@ def table_objects_extractor(pcd): #TODO remove target frame also from config
     width = pcd.width
     
     #make sure pointcloud has z pointing up
-    pcd = transformPointCloud(pcd, table_params['base_frame'], pcd.header.frame_id, tf_buffer) 
+    pcd = transformPointCloud(
+        pcd, 
+        table_params['base_frame'], 
+        pcd.header.frame_id, tf_buffer) 
 
     header = pcd.header
 
-    pcd_with_nans = orh.rospc_to_o3dpc(pcd, remove_nans=False) #TODO why does tableplaneextractor die with nans
+    pcd_with_nans = orh.rospc_to_o3dpc(pcd, remove_nans=False)
     pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
 
     # downsample cloud
@@ -51,6 +54,10 @@ def table_objects_extractor(pcd): #TODO remove target frame also from config
         table_params["plane_segmentation_distance_threshold"], 
         table_params["max_angle_deg"],
         table_params["z_min"])
+    
+    if bboxes is None:
+        rospy.logerr("No planes found!")
+        return None, None, None
 
     bb_arr, pc_arr, label_img = extract_objects_from_tableplane(
         pcd_with_nans, 

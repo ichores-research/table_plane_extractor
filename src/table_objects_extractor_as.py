@@ -22,14 +22,20 @@ class GetObjectsOnTableAS():
 
     def __init__(self):
         self.server = actionlib.SimpleActionServer(
-            '/table_objects_extractor/get_label_image', GenericImgProcAnnotatorAction, self.get_labels_img, False)
+            '/table_objects_extractor/get_label_image', 
+            GenericImgProcAnnotatorAction, 
+            self.get_labels_img, 
+            False)
 
         self.enable_rviz_visualization = rospy.get_param(
             '/table_plane_extractor/enable_rviz_visualization')
         if self.enable_rviz_visualization:
-            self.visualizer = RvizVisualizer('TableObjectsExtractorVisualizer')
-            self.pub = rospy.Publisher('objectsOnTableLabelImage',
-                                Image, queue_size=10)
+            self.visualizer = RvizVisualizer(
+                'TableObjectsExtractorVisualizer')
+            self.pub = rospy.Publisher(
+                'objectsOnTableLabelImage',
+                Image, 
+                queue_size=10)
         self.server.start()
         rospy.loginfo("TableObjectsExtractor: Actionserver started")
 
@@ -37,9 +43,10 @@ class GetObjectsOnTableAS():
         '''
         Actionserver that implements the GenericImgProcAnnotator message.
 
-        The table-plane based object detector is not able to assign object classes to the
-        detected objects. This means that all objects are in essence 'unknown'. This is encoded
-        by assigning class_id = -1 and class_name = 'Unknown'. Additionally the label image is returned,
+        The table-plane based object detector is not able to assign object 
+        classes to the detected objects. This means that all objects are in 
+        essence 'unknown'. This is encoded by assigning class_id = -1 and 
+        class_name = 'Unknown'. Additionally the label image is returned,
         which defines which pixel from the depth image belongs to which object.
 
         Topic: /objects_on_table/get_labels_img
@@ -48,7 +55,8 @@ class GetObjectsOnTableAS():
         '''
         goal_ok = check_for_rgb_depth(goal)
         if not goal_ok:
-            self.server.set_aborted('Not every expected message field was passed to GetObjectsOnTableAS')
+            self.server.set_aborted(
+                'Not every expected message field was passed to GetObjectsOnTableAS')
             return
         
         ros_cam_topic = rospy.get_param('/table_objects_extractor_as/cam_info_topic')
@@ -61,16 +69,26 @@ class GetObjectsOnTableAS():
         tf2_ros.TransformListener(tf_buffer)
 
         # get pointcloud and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
-        pcd, _ = convert_ros_depth_img_to_pcd(goal.depth, cam_info, project_valid_depth_only=False)
+        pcd, _ = convert_ros_depth_img_to_pcd(
+            goal.depth, 
+            cam_info, 
+            project_valid_depth_only=False)
         height = pcd.height
         width = pcd.width
-        pcd = transformPointCloud(pcd, table_params['base_frame'], pcd.header.frame_id, tf_buffer) #make sure pointcloud has z pointing up
+        
+        #make sure pointcloud has z pointing up
+        pcd = transformPointCloud(
+            pcd, 
+            table_params['base_frame'], 
+            pcd.header.frame_id, 
+            tf_buffer) 
         header = pcd.header
-        pcd_with_nans = orh.rospc_to_o3dpc(pcd, remove_nans=False)#TODO why does tableplaneextractor die with nans
+        pcd_with_nans = orh.rospc_to_o3dpc(pcd, remove_nans=False)
         pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
 
         # downsample cloud
-        pcd_downsampled = pcd.voxel_down_sample(voxel_size=table_params['downsample_vox_size'])
+        pcd_downsampled = pcd.voxel_down_sample(
+            voxel_size=table_params['downsample_vox_size'])
 
         _, bboxes = extract_table_planes_from_pcd(
             pcd_downsampled, 
@@ -79,7 +97,12 @@ class GetObjectsOnTableAS():
             table_params["plane_segmentation_distance_threshold"],
             table_params["max_angle_deg"],
             table_params["z_min"])    
-
+        
+        if bboxes is None:
+            rospy.logerr("No planes found!")
+            self.server.set_aborted(None)
+            return
+        
         print('Found {} planes'.format(len(bboxes)))
 
         bb_arr, _, labels = extract_objects_from_tableplane(
@@ -101,10 +124,18 @@ class GetObjectsOnTableAS():
         np_label_img = labels.reshape(goal.depth.height, goal.depth.width)
 
         if self.enable_rviz_visualization:
-            self.visualizer.publish_o3d_bb_arr(bboxes, header, "table_planes")
-            self.visualizer.publish_o3d_bb_arr(bb_arr, header, "objects_on_table")
+            self.visualizer.publish_o3d_bb_arr(
+                bboxes, 
+                header, 
+                "table_planes")
+            self.visualizer.publish_o3d_bb_arr(
+                bb_arr, 
+                header, 
+                "objects_on_table")
             np_rgb_img = ros_numpy.numpify(goal.rgb)
-            color_img = convert_np_label_img_to_ros_color_img(np_label_img, np_rgb_img)
+            color_img = convert_np_label_img_to_ros_color_img(
+                np_label_img, 
+                np_rgb_img)
             self.pub.publish(color_img)
 
         res = GenericImgProcAnnotatorResult()

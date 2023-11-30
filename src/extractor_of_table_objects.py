@@ -13,10 +13,14 @@ def extract_objects_from_tableplane(pcd, table_planes, eps, min_points, min_volu
 
         # get bounding box above table
         bb_above_table = plane_bb
-        bb_above_table.center = (bb_above_table.center[0], bb_above_table.center[1],
-                                 bb_above_table.center[2]+max_obj_height/2.0+bb_above_table.extent[2])
+        bb_above_table.center = (
+            bb_above_table.center[0], 
+            bb_above_table.center[1],
+            bb_above_table.center[2]+max_obj_height/2.0+bb_above_table.extent[2])
         bb_above_table.extent = (
-            bb_above_table.extent[0]+0.04, bb_above_table.extent[1]+0.04, bb_above_table.extent[2]+max_obj_height)
+            bb_above_table.extent[0]+0.04, 
+            bb_above_table.extent[1]+0.04, 
+            bb_above_table.extent[2]+max_obj_height)
 
         # filter out points that are not above the table
         indices = np.array(

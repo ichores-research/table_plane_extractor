@@ -5,7 +5,14 @@ import numpy as np
 import open3d as o3d
 import matplotlib.pyplot as plt
 
-def extract_table_planes_from_pcd(pcd, cluster_dbscan_eps = 0.15, min_cluster_size = 200, distance_threshold = 0.01, max_angle_deg = 5, z_min = 0.2, num_iter_ransac = 1000):
+def extract_table_planes_from_pcd(
+        pcd, 
+        cluster_dbscan_eps = 0.15, 
+        min_cluster_size = 200, 
+        distance_threshold = 0.01, 
+        max_angle_deg = 5, 
+        z_min = 0.2, 
+        num_iter_ransac = 1000):
     '''
     Extract possible horizontal planes from the point cloud.
     
@@ -34,7 +41,10 @@ def extract_table_planes_from_pcd(pcd, cluster_dbscan_eps = 0.15, min_cluster_si
     pcd.points = o3d.utility.Vector3dVector(points[floor == 0])
 
 
-    label_vec = np.array(pcd.cluster_dbscan(eps=0.2, min_points=10))
+    # Cluster the point cloud with DBSCAN 
+    label_vec = np.array(pcd.cluster_dbscan(
+        eps=cluster_dbscan_eps, 
+        min_points=min_cluster_size))
 
     # Visualize the clustered point cloud in Open3D
     # max_label = label_vec.max()
@@ -44,6 +54,8 @@ def extract_table_planes_from_pcd(pcd, cluster_dbscan_eps = 0.15, min_cluster_si
 
     labels, counts = np.unique(label_vec, return_counts=True)
 
+
+    # detect planes for every cluster
     for label in labels:
         if label == -1:
             continue
@@ -56,9 +68,11 @@ def extract_table_planes_from_pcd(pcd, cluster_dbscan_eps = 0.15, min_cluster_si
 
         cluster_pcd = cluster
         while len(cluster_pcd.points) > min_cluster_size:
-            plane_model, inliers = cluster_pcd.segment_plane(distance_threshold=distance_threshold,
-                                                    ransac_n=3,
-                                                    num_iterations=num_iter_ransac)
+            plane_model, inliers = cluster_pcd.segment_plane(
+                distance_threshold=distance_threshold,
+                ransac_n=3,
+                num_iterations=num_iter_ransac)
+            
             # ax + by + cz + d = 0
             [a, b, c, d] = plane_model
 
@@ -86,6 +100,10 @@ def extract_table_planes_from_pcd(pcd, cluster_dbscan_eps = 0.15, min_cluster_si
                 #print("Plane equation: {}x + {}y + {}z + {} = 0".format(a, b, c, d))
                 bb_plane = plane_pc.get_minimal_oriented_bounding_box(robust=True)
                 bboxes.append(bb_plane)
+    if len(planes) == 0:
+        print("No planes found")
+        return None, None
+    
     return planes, bboxes
 
 
@@ -110,7 +128,6 @@ if __name__ == "__main__":
     sd = np.std(plane_count)
     mean_plane_count = np.mean(plane_count)
     unique_values, counts = np.unique(plane_count, return_counts=True)
-
 
     plt.bar(unique_values, counts)
     plt.axvline(mean_plane_count, color='r', linestyle='dashed', linewidth=2, label='Mean')

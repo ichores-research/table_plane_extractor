@@ -65,8 +65,6 @@ def table_objects_extractor(pcd): #TODO remove target frame also from config
     if table_params["enable_rviz_visualization"]:
         rviz_vis.publish_o3d_bb_arr(bboxes, header, "table_plane")
         rviz_vis.publish_o3d_bb_arr(bb_arr, header, "objects_on_table")
-        rospy.sleep(3.)
-        rviz_vis.clear_markers("plane")
 
     return bb_arr, pc_arr, label_img
 

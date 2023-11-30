@@ -1,10 +1,8 @@
 #!/usr/bin/python3
 
 from table_plane_extractor.srv import TablePlaneExtractor
-from visualization_msgs.msg import MarkerArray
 import rospy
 from sensor_msgs.msg import PointCloud2
-from v4r_util.util import ros_bb_arr_to_rviz_marker_arr
 
 
 class UseTablePlaneExtractor():
@@ -15,8 +13,6 @@ class UseTablePlaneExtractor():
         # get point cloud
         topic = '/hsrb/head_rgbd_sensor/depth_registered/rectified_points'
         sub = rospy.Subscriber(topic, PointCloud2, self.pc_cb)
-        pub = rospy.Publisher('PlaneBoundingBoxVisualizer',
-                              MarkerArray, queue_size=10)
         print("waiting for pointcloud message")
         rospy.wait_for_message(topic, PointCloud2)
         print("waiting for table_plane_extractor service")
@@ -28,10 +24,6 @@ class UseTablePlaneExtractor():
             table_extractor = rospy.ServiceProxy(
                 '/test/table_plane_extractor', TablePlaneExtractor)
             response = table_extractor(self.cloud)
-            # publish markers
-            marker_arr = ros_bb_arr_to_rviz_marker_arr(
-                response.plane_bounding_boxes)
-            pub.publish(marker_arr)
             print((str(len(response.plane_bounding_boxes.boxes))) + ' plane(s) found!')
             print("done in " + str(rospy.get_time() - start) + " s")
 

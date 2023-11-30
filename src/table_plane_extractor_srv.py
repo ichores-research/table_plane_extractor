@@ -34,7 +34,10 @@ def table_plane_extractor_methode(req):
 
     #make sure pointcloud has z pointing up
     pcd = transformPointCloud(
-        pcd, table_params['base_frame'], pcd.header.frame_id, tf_buffer) 
+        pcd, 
+        table_params['base_frame'], 
+        pcd.header.frame_id, 
+        tf_buffer) 
     header = pcd.header
     pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
 

@@ -15,14 +15,14 @@ find_package(catkin REQUIRED COMPONENTS
   v4r_util
   robokudo_msgs
   actionlib
+  object_detector_msgs
 )
 
 
 # Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  Plane.msg
-)
+# add_message_files(
+#   FILES
+# )
 
 # Generate services in the 'srv' folder
 add_service_files(
@@ -39,6 +39,7 @@ generate_messages(
   geometry_msgs
   sensor_msgs
   vision_msgs
+  object_detector_msgs
 )
 
 

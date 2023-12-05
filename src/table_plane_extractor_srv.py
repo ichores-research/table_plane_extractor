@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 from math import atan, pi
 from table_plane_extractor.srv import TablePlaneExtractor, TablePlaneExtractorResponse
-from table_plane_extractor.msg import Plane
+from object_detector_msgs.msg import Plane
 import numpy as np
 import rospy
 import open3d as o3d

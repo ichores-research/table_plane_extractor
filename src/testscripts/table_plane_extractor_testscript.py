@@ -16,13 +16,13 @@ class UseTablePlaneExtractor():
         print("waiting for pointcloud message")
         rospy.wait_for_message(topic, PointCloud2)
         print("waiting for table_plane_extractor service")
-        rospy.wait_for_service('/test/table_plane_extractor')
+        rospy.wait_for_service('/table_plane_extractor/get_planes')
         try:
             # use service
             print("calling service")
             start = rospy.get_time()
             table_extractor = rospy.ServiceProxy(
-                '/test/table_plane_extractor', TablePlaneExtractor)
+                '/table_plane_extractor/get_planes', TablePlaneExtractor)
             response = table_extractor(self.cloud)
             print((str(len(response.plane_bounding_boxes.boxes))) + ' plane(s) found!')
             print("done in " + str(rospy.get_time() - start) + " s")

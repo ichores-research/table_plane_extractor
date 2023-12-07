@@ -19,7 +19,7 @@ class UseGetLabelImageOfObjectsOnTable():
         self.timeout = 100
 
         rospy.init_node('table_objects_extractor_as_client')
-        self.detector_pose_estimator = self.__setup_detector(
+        self.table_object_extractor = self.__setup_detector(
             '/table_objects_extractor/get_label_image', 
             self.timeout)
         print('wait for image messages')
@@ -27,40 +27,21 @@ class UseGetLabelImageOfObjectsOnTable():
         rospy.wait_for_message('/hsrb/head_rgbd_sensor/rgb/image_rect_color', Image)
 
         try:
-
             goal = GenericImgProcAnnotatorGoal(rgb = self.rgb, depth = self.depth)
-            estimator_result = self.get_estimator_result(goal)
+            result = self.get_estimator_result(goal)
         except rospy.ServiceException as e:
             print(e)
 
     def __setup_detector(self, detector_topic, timeout):
-        rospy.loginfo('Waiting for detector_pose_estimator actionserver')
-        print(detector_topic)
-        detector_pose_estimator = actionlib.SimpleActionClient(
+        rospy.loginfo('Waiting for table_object_extractor actionserver')
+        
+        table_object_extractor = actionlib.SimpleActionClient(
             detector_topic, 
             GenericImgProcAnnotatorAction)
-        if not detector_pose_estimator.wait_for_server(timeout=rospy.Duration(timeout)):
-            rospy.logerr(f'Connection to detector_pose_estimator \'{detector_topic}\' timed out!')
+        if not table_object_extractor.wait_for_server(timeout=rospy.Duration(timeout)):
+            rospy.logerr(f'Connection to table_object_extractor \'{detector_topic}\' timed out!')
             raise TimeoutError
-        return detector_pose_estimator
-
-    def pc_cb(self, data):
-        self.cloud = data
-
-    def get_estimator_result(self, estimator_goal):
-        rospy.logdebug('Sending goal to estimator')
-        self.detector_pose_estimator.send_goal(estimator_goal)
-
-        rospy.logdebug('Waiting for estimator results')
-        goal_finished = self.detector_pose_estimator.wait_for_result(rospy.Duration(self.timeout))
-        if not goal_finished:
-            rospy.logerr('Estimator didn\'t return results before timing out!')
-            raise TimeoutError
-        estimator_result = self.detector_pose_estimator.get_result()
-        rospy.loginfo(f'Detector detected {len(estimator_result.pose_results)} potential object poses.')
-
-        return estimator_result
-
+        return table_object_extractor
 
     def __setup_image_subs(self, depth_topic, rgb_topic):
         depth_sub = message_filters.Subscriber(depth_topic, Image)
@@ -68,6 +49,26 @@ class UseGetLabelImageOfObjectsOnTable():
         image_sub = message_filters.ApproximateTimeSynchronizer([depth_sub, rgb_sub], 5, 0.1)
         image_sub.registerCallback(self.image_callback)
         return image_sub
+
+    def pc_cb(self, data):
+        self.cloud = data
+
+    def get_estimator_result(self, goal):
+        rospy.logdebug('Sending goal to estimator')
+        self.table_object_extractor.send_goal(goal)
+
+        rospy.logdebug('Waiting for estimator results')
+        goal_finished = self.table_object_extractor.wait_for_result(rospy.Duration(self.timeout))
+        if not goal_finished:
+            rospy.logerr('table_object_extractor didn\'t return results before timing out!')
+            raise TimeoutError
+        result = self.table_object_extractor.get_result()
+        rospy.loginfo(f'Detector detected {len(result.pose_results)} potential object poses.')
+
+        return result
+
+
+
 
     def image_callback(self, depth, rgb):
         self.depth = depth

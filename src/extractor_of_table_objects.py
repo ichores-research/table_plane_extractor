@@ -3,8 +3,24 @@ from v4r_util.util import get_minimum_oriented_bounding_box
 
 
 def extract_objects_from_tableplane(pcd, table_planes, eps, min_points, min_volume, max_obj_height, height, width):
-    print(np.asarray(pcd.points).shape)
-    print(height*width)
+    '''
+    Extracts objects from a pointcloud given an array of table plane.
+
+    Parameters:
+        pcd (o3d.geometry.PointCloud): pointcloud of the scene, z pointing up
+        table_planes (list): list of table planes
+        eps (float): eps parameter for DBSCAN
+        min_points (int): min_points parameter for DBSCAN
+        min_volume (float): minimum volume of a bounding box
+        max_obj_height (float): maximum height of an object
+        height (int): height of the original image
+        width (int): width of the original image
+
+    Returns:
+        list[open3d.geometry.OrientedBoundingBox] bb_arr
+        list[open3d.geometry.PointCloud] pc_arr
+        np.array label_img (flattened image with shape (width*height))
+    '''
     label_img = np.full(height * width, -1, dtype=np.int16)
     pc_arr = []
     bb_arr = []
@@ -26,12 +42,12 @@ def extract_objects_from_tableplane(pcd, table_planes, eps, min_points, min_volu
         indices = np.array(
             bb_above_table.get_point_indices_within_bounding_box(pcd.points))
         scene_above_table = pcd.select_by_index(indices)
-        print(np.asarray(scene_above_table.points).shape)
+        
         # segment scene-pointcloud into objects
         labels = np.array(scene_above_table.cluster_dbscan(
             eps=eps, min_points=min_points))
         labels_unique = np.unique(labels)
-        print(labels_unique)
+        
         # get bounding box and pointcloud for each object
         for label in labels_unique:
             if label == -1:

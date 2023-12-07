@@ -50,7 +50,9 @@ def table_plane_extractor_methode(req):
         table_params["min_cluster_size"], 
         table_params["plane_segmentation_distance_threshold"], 
         table_params["max_angle_deg"], 
-        table_params["z_min"])
+        table_params["z_min"],
+        table_params["num_iter_ransac"],
+        table_params["min_pre_cluster_size"])
     
     if planes is None:
         rospy.logerr("No planes found!")
@@ -66,7 +68,7 @@ def table_plane_extractor_methode(req):
     bb_arr.boxes = [o3d_bb_to_ros_bb(bb_plane) for bb_plane in bboxes]
 
     if table_params['enable_rviz_visualization']:
-        rviz_vis.publish_ros_bb_arr(bb_arr, "planes", True)
+        rviz_vis.publish_ros_bb_arr(bb_arr, "table_plane", True)
     
     return TablePlaneExtractorResponse(planes_ros, bb_arr)
 
@@ -74,11 +76,11 @@ def table_plane_extractor_methode(req):
 def table_plane_extractor_server():
     ''' 
     Starting table plane extractor server node
-    Topic: /test/table_plane_extractor
+    Topic: /table_plane_extractor/get_planes
     '''
     rospy.init_node('table_plane_extractor_server')
     s = rospy.Service(
-        '/test/table_plane_extractor',
+        '/table_plane_extractor/get_planes',
         TablePlaneExtractor, 
         table_plane_extractor_methode)
     print("Ready to extract planes")

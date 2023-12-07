@@ -12,7 +12,8 @@ def extract_table_planes_from_pcd(
         distance_threshold = 0.01, 
         max_angle_deg = 5, 
         z_min = 0.2, 
-        num_iter_ransac = 1000):
+        num_iter_ransac = 1000,
+        min_pre_cluster_size = 150):
     '''
     Extract possible horizontal planes from the point cloud.
     
@@ -26,10 +27,8 @@ def extract_table_planes_from_pcd(
         
     Returns:
         list: List of tuples (a, b, c, d) representing plane equations (a * x + b * y + c * z + d = 0).
-        list: List of oriented bounding boxes (Open3D geometry objects) around the detected planes.
+        list: List of oriented bounding boxes (open3d.geometry.OrientedBoundingBox) around the detected planes.
     '''
-    
-    #o3d.io.write_point_cloud("/root/HSR/catkin_ws/test_as.pcd", pcd)
 
     planes = []
     bboxes = []
@@ -41,26 +40,24 @@ def extract_table_planes_from_pcd(
     pcd.points = o3d.utility.Vector3dVector(points[floor == 0])
 
 
-    # Cluster the point cloud with DBSCAN 
+    # Cluster scene after floor removal to get rough semantic seperation
+    # for more precise plane segmentation (otherwise points of similar 
+    # hight scatterewd over the whole scene influence the plane segmentation)
     label_vec = np.array(pcd.cluster_dbscan(
         eps=cluster_dbscan_eps, 
-        min_points=min_cluster_size))
+        min_points=min_pre_cluster_size))
 
-    # Visualize the clustered point cloud in Open3D
+    # #Visualize the clustered point cloud in Open3D
     # max_label = label_vec.max()
-    #colors = plt.cm.get_cmap("tab20")(label_vec / (max_label if max_label > 0 else 1))
+    # colors = plt.cm.get_cmap("tab20")(label_vec / (max_label if max_label > 0 else 1))
     # pcd.colors = o3d.utility.Vector3dVector(colors[:, :3])
     # o3d.visualization.draw_geometries([pcd])
 
-    labels, counts = np.unique(label_vec, return_counts=True)
-
+    labels = np.unique(label_vec)
 
     # detect planes for every cluster
     for label in labels:
         if label == -1:
-            continue
-
-        if counts[label] < 70:
             continue
 
         cluster_idx = np.where(np.asarray(label_vec) == label)[0]
@@ -97,7 +94,7 @@ def extract_table_planes_from_pcd(
                 bb_plane = plane_pc.get_oriented_bounding_box()
                 planes.append((a,b,c,d))
 
-                #print("Plane equation: {}x + {}y + {}z + {} = 0".format(a, b, c, d))
+                print("Plane equation: {}x + {}y + {}z + {} = 0".format(a, b, c, d))
                 bb_plane = plane_pc.get_minimal_oriented_bounding_box(robust=True)
                 bboxes.append(bb_plane)
     if len(planes) == 0:

@@ -15,7 +15,7 @@ Table plane extractor who takes the point cloud as input. Returns possible horiz
 
 **Service topic:** 
 ```
-/test/table_plane_extractor
+/table_plane_extractor/get_planes
 ```
 **Input/Output:** 
 ```
@@ -109,11 +109,22 @@ roslaunch table_plane_extractor table_objects_extractor_as.launch
 
 ## Demo
 
-You can find demo codes in the Files  
+You can find demo codes in the Files, provide also good starting point/template
 ```
 src/testscripts/table_plane_extractor_testscript.py
 src/testscripts/table_objects_extractor_testscript.py
 src/testscripts/table_objects_extractor_as_testscript.py
+```
+
+## Visualization
+rviz visualization of plane and object detection can be found on the topic
+```
+TablePlaneExtractorVisualizer MarkerArray
+```
+
+rviz visualization of Label Image can be found on the topic
+```
+objectsOnTableLabelImage Image
 ```
 
 ## Status

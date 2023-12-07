@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from open3d_ros_helper import open3d_ros_helper as orh
 import rospy
-import numpy as np
 import tf2_ros
 import copy
 from v4r_util.util import transformPointCloud, o3d_bb_list_to_ros_bb_arr
@@ -9,10 +8,8 @@ from v4r_util.rviz_visualizer import RvizVisualizer
 from table_plane_extractor.srv import GetBBOfObjectsOnTable, GetBBOfObjectsOnTableResponse, GetPCOfObjectsOnTable, GetPCOfObjectsOnTableResponse
 from extractor_of_table_planes import extract_table_planes_from_pcd
 from extractor_of_table_objects import extract_objects_from_tableplane
-from vision_msgs.msg import BoundingBox3DArray
 
-
-def table_objects_extractor(pcd): #TODO remove target frame also from config
+def table_objects_extractor(pcd):
     '''
     Returns bounding boxes and pointclouds of objects found on a table plane.
     Output: list[open3d.geometry.OrientedBoundingBox] bb_arr
@@ -53,7 +50,9 @@ def table_objects_extractor(pcd): #TODO remove target frame also from config
         table_params["min_cluster_size"], 
         table_params["plane_segmentation_distance_threshold"], 
         table_params["max_angle_deg"],
-        table_params["z_min"])
+        table_params["z_min"],
+        table_params["num_iter_ransac"],
+        table_params["min_pre_cluster_size"])
     
     if bboxes is None:
         rospy.logerr("No planes found!")
@@ -89,7 +88,7 @@ def get_object_bbs(req):
     o3d_bb_arr, _, _ = table_objects_extractor(req.point_cloud)
     ros_bb_arr = o3d_bb_list_to_ros_bb_arr(
         o3d_bb_arr, base_frame, rospy.get_rostime())
-
+    
     return GetBBOfObjectsOnTableResponse(ros_bb_arr)
 
 
@@ -122,7 +121,7 @@ def table_objects_extractor_server():
                          GetBBOfObjectsOnTable, get_object_bbs)
     s_pc = rospy.Service('/table_objects_extractor/get_point_clouds',
                          GetPCOfObjectsOnTable, get_object_pcs)
-    print("Ready to detect objects on table plane.")
+    rospy.loginfo("Ready to detect objects on table plane.")
     rospy.spin()
 
 

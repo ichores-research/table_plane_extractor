@@ -3,6 +3,8 @@ import numpy as np
 import rospy
 import ros_numpy
 import actionlib
+import copy
+import tf2_ros
 from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorResult
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import Pose
@@ -10,13 +12,10 @@ from v4r_util.depth_pcd import convert_ros_depth_img_to_pcd, convert_np_label_im
 from v4r_util.message_checks import check_for_rgb_depth
 from v4r_util.rviz_visualizer import RvizVisualizer
 from open3d_ros_helper import open3d_ros_helper as orh
-import rospy
-import numpy as np
-import tf2_ros
 from v4r_util.util import transformPointCloud
 from extractor_of_table_planes import extract_table_planes_from_pcd
 from extractor_of_table_objects import extract_objects_from_tableplane
-import copy
+
 
 class GetObjectsOnTableAS():
 
@@ -49,7 +48,7 @@ class GetObjectsOnTableAS():
         class_name = 'Unknown'. Additionally the label image is returned,
         which defines which pixel from the depth image belongs to which object.
 
-        Topic: /objects_on_table/get_labels_img
+        Topic: /table_objects_extractor/get_label_image
         Expected Input: sensor_msgs/Image rgb, sensor_msgs/Image depth
         Returns: int32[] class_ids, string[] class_names, sensor_msgs/Image image
         '''
@@ -96,7 +95,9 @@ class GetObjectsOnTableAS():
             table_params["min_cluster_size"],
             table_params["plane_segmentation_distance_threshold"],
             table_params["max_angle_deg"],
-            table_params["z_min"])    
+            table_params["z_min"],
+            table_params["num_iter_ransac"],
+            table_params["min_pre_cluster_size"])    
         
         if bboxes is None:
             rospy.logerr("No planes found!")

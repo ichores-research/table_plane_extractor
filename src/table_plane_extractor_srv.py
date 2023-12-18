@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 from table_plane_extractor.srv import TablePlaneExtractor, TablePlaneExtractorResponse
-from table_plane_extractor.msg import Plane
 from extractor_of_table_planes import extract_table_planes_from_pcd
+from object_detector_msgs.msg import Plane
 import rospy
 from open3d_ros_helper import open3d_ros_helper as orh
 import tf2_ros

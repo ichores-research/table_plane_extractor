@@ -29,5 +29,6 @@
   <depend>v4r_util</depend>
   <depend>robokudo_msgs</depend>
   <depend>actionlib</depend>
+  <depend>object_detector_msgs</depend>
 
 </package>

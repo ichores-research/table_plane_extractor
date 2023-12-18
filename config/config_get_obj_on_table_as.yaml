@@ -1,2 +1,0 @@
-get_objects_on_table_as:
-  cam_info_topic: /hsrb/head_rgbd_sensor/depth_registered/camera_info

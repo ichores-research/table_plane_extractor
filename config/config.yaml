@@ -9,12 +9,16 @@ table_plane_extractor:
                                                 # that the planes returned are horizontal in this frame 
                                                 # -> should be a frame with z pointing upwards for table extractions
   z_min: 0.2                                    # min allowed z_coordinate (in m) for planes (used for filtering floor)
+  enable_rviz_visualization: True               # enables visualization of bounding boxes in rviz (topic: objectsOnTableVisualizer)
+  min_pre_cluster_size: 150                     # min amount of points needed in a cluster to be considered for plane detection
+  num_iter_ransac: 1000                          # number of iterations for ransac plane detection
 
-get_objects_on_table:
+table_objects_extractor:
   cluster_dbscan_eps: 0.01                      # density parameter (in m) that is used to find neighbouring points 
                                                 # for object segmentation
   min_points: 50                                # minimum number of points to form a valid object-cluster
   min_volume: 0.0001                            # minimum volume bounding box needs to have to not be discarded (in m^3)
-  target_frame: base_link                       # results are returned relative to this frame
   max_obj_height: 0.4                           # maximum height of object (in m)
-  enable_rviz_visualization: True               # enables visualization of bounding boxes in rviz (topic: objectsOnTableVisualizer)
+
+table_objects_extractor_as:
+  cam_info_topic: /hsrb/head_rgbd_sensor/depth_registered/camera_info

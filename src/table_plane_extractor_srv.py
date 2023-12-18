@@ -1,15 +1,16 @@
 #!/usr/bin/python3
-from math import atan, pi
 from table_plane_extractor.srv import TablePlaneExtractor, TablePlaneExtractorResponse
+from extractor_of_table_planes import extract_table_planes_from_pcd
 from object_detector_msgs.msg import Plane
-import numpy as np
 import rospy
-import open3d as o3d
 from open3d_ros_helper import open3d_ros_helper as orh
 import tf2_ros
-from v4r_util.util import o3d_bb_to_ros_bb, transformPointCloud, get_minimum_oriented_bounding_box
+from v4r_util.util import o3d_bb_to_ros_bb, transformPointCloud
+from v4r_util.rviz_visualizer import RvizVisualizer
 from vision_msgs.msg import BoundingBox3DArray
+
 from std_msgs.msg import Header
+
 
 
 def table_plane_extractor_methode(req):
@@ -19,86 +20,69 @@ def table_plane_extractor_methode(req):
     Input: sensor_msgs/PointCloud2 inputCloud
     Output: table_plane_extractor/Plane[] planes, vision_msgs/BoundingBox3DArray plane_bounding_boxes
     '''
-    base_frame = rospy.get_param("/table_plane_extractor/base_frame")
 
-    #tf_listener = tf.TransformListener()
-    # tf buffer for tf transform
+    table_params = rospy.get_param("table_plane_extractor")
+
+    if table_params["enable_rviz_visualization"]:
+        rviz_vis = RvizVisualizer('TablePlaneExtractorVisualizer') 
+
     tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer)
+    tf2_ros.TransformListener(tf_buffer)
 
     # get pointcloud and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
     pcd = req.point_cloud
-    pcd = transformPointCloud(pcd, base_frame, pcd.header.frame_id, tf_buffer)
+
+    #make sure pointcloud has z pointing up
+    pcd = transformPointCloud(
+        pcd, 
+        table_params['base_frame'], 
+        pcd.header.frame_id, 
+        tf_buffer) 
     header = pcd.header
     pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
 
     # downsample cloud
-    downsample_vox_size = rospy.get_param(
-        "/table_plane_extractor/downsample_vox_size")
-    pcd = pcd.voxel_down_sample(voxel_size=downsample_vox_size)
+    pcd = pcd.voxel_down_sample(voxel_size=table_params['downsample_vox_size'])
 
-    planes = []
+    planes, bboxes = extract_table_planes_from_pcd(
+        pcd, 
+        table_params["cluster_dbscan_eps"], 
+        table_params["min_cluster_size"], 
+        table_params["plane_segmentation_distance_threshold"], 
+        table_params["max_angle_deg"], 
+        table_params["z_min"],
+        table_params["num_iter_ransac"],
+        table_params["min_pre_cluster_size"])
+    
+    if planes is None:
+        rospy.logerr("No planes found!")
+        return None, None
+    
+    planes_ros = [
+        Plane(
+            Header(0, header.stamp, table_params['base_frame']), 
+            a, b, c, d) for a, b, c, d in planes]
+
     bb_arr = BoundingBox3DArray()
-    bb_arr.boxes = []
     bb_arr.header = header
+    bb_arr.boxes = [o3d_bb_to_ros_bb(bb_plane) for bb_plane in bboxes]
 
-    cluster_dbscan_eps = rospy.get_param(
-        "/table_plane_extractor/cluster_dbscan_eps")
-    min_cluster_size = rospy.get_param(
-        "/table_plane_extractor/min_cluster_size")
-    max_angle_deg = rospy.get_param("/table_plane_extractor/max_angle_deg")
-    z_min = rospy.get_param("/table_plane_extractor/z_min")
-    distance_threshold = rospy.get_param(
-        "/table_plane_extractor/plane_segmentation_distance_threshold")
-    max_angle_rad = max_angle_deg * pi/180
-
-    # filter all points below z_min
-    points = np.array(pcd.points)
-    floor = points[:, 2] < z_min
-    pcd.points = o3d.utility.Vector3dVector(points[floor == 0])
-
-    # get planes with RANSAC
-    while len(pcd.points) > min_cluster_size:
-        plane_model, inliers = pcd.segment_plane(distance_threshold=distance_threshold,
-                                                 ransac_n=3,
-                                                 num_iterations=1000)
-        # ax + by + cz + d = 0
-        [a, b, c, d] = plane_model
-
-        # remove non-horizontal-planes
-        # z = (-ax - by - d)/c -> gradient = (-a/c, -b/c)
-        if (abs(atan(-a/c)) > max_angle_rad or abs(atan(-b/c)) > max_angle_rad):
-            pcd = pcd.select_by_index(inliers, invert=True)
-            continue
-
-        inlier_cloud = pcd.select_by_index(inliers)
-        pcd = pcd.select_by_index(inliers, invert=True)
-        # segment plane-pointcloud because multiple objects could potentially align with the same plane
-        idx = inlier_cloud.cluster_dbscan(cluster_dbscan_eps, min_cluster_size)
-        values = np.unique(idx)
-        for val in values:
-            if val == -1:
-                continue
-            # select clustered plane cloud
-            cluster_idx = np.where(np.asarray(idx) == val)[0]
-            plane_pc = inlier_cloud.select_by_index(cluster_idx)
-            bb_plane = plane_pc.get_oriented_bounding_box()
-            planes.append(Plane(Header(0, header.stamp, base_frame), a, b, c, d))
-            print("Plane equation: {}x + {}y + {}z + {} = 0".format(a, b, c, d))
-            bb_plane = get_minimum_oriented_bounding_box(plane_pc)
-            bb_arr.boxes.append(o3d_bb_to_ros_bb(bb_plane))
-
-    return TablePlaneExtractorResponse(planes, bb_arr)
+    if table_params['enable_rviz_visualization']:
+        rviz_vis.publish_ros_bb_arr(bb_arr, "table_plane", True)
+    
+    return TablePlaneExtractorResponse(planes_ros, bb_arr)
 
 
 def table_plane_extractor_server():
     ''' 
     Starting table plane extractor server node
-    Topic: /test/table_plane_extractor
+    Topic: /table_plane_extractor/get_planes
     '''
     rospy.init_node('table_plane_extractor_server')
-    s = rospy.Service('/test/table_plane_extractor',
-                      TablePlaneExtractor, table_plane_extractor_methode)
+    s = rospy.Service(
+        '/table_plane_extractor/get_planes',
+        TablePlaneExtractor, 
+        table_plane_extractor_methode)
     print("Ready to extract planes")
     rospy.spin()
 

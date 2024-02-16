@@ -6,7 +6,7 @@ import rospy
 from open3d_ros_helper import open3d_ros_helper as orh
 import tf2_ros
 from v4r_util.util import o3d_bb_to_ros_bb, transformPointCloud
-from v4r_util.rviz_visualizer import RvizVisualizer
+from v4r_util.rviz_visualization.rviz_visualizer import RvizVisualizer
 from vision_msgs.msg import BoundingBox3DArray
 
 from std_msgs.msg import Header

@@ -10,7 +10,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import Pose
 from v4r_util.depth_pcd import convert_ros_depth_img_to_pcd, convert_np_label_img_to_ros_color_img
 from v4r_util.message_checks import check_for_rgb_depth
-from v4r_util.rviz_visualizer import RvizVisualizer
+from v4r_util.rviz_visualization.rviz_visualizer import RvizVisualizer
 from open3d_ros_helper import open3d_ros_helper as orh
 from v4r_util.util import transformPointCloud
 from extractor_of_table_planes import extract_table_planes_from_pcd

@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   v4r_util
   robokudo_msgs
   actionlib
-  object_detector_msgs
+  grasping_pipeline_msgs
 )
 
 
@@ -39,7 +39,7 @@ generate_messages(
   geometry_msgs
   sensor_msgs
   vision_msgs
-  object_detector_msgs
+  grasping_pipeline_msgs
 )
 
 

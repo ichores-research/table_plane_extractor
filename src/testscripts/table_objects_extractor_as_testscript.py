@@ -9,6 +9,7 @@ class UseGetLabelImageOfObjectsOnTable():
     ''' Example of using the table_objects_extractor service. '''
 
     def __init__(self):
+        rospy.init_node('table_objects_extractor_as_client')
         self.cloud = None
 
         self.depth, self.rgb = None, None
@@ -18,7 +19,6 @@ class UseGetLabelImageOfObjectsOnTable():
 
         self.timeout = 100
 
-        rospy.init_node('table_objects_extractor_as_client')
         self.table_object_extractor = self.__setup_detector(
             '/table_objects_extractor/get_label_image', 
             self.timeout)

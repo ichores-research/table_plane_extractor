@@ -21,7 +21,7 @@ class GetObjectsOnTableAS():
 
     def __init__(self):
         self.server = actionlib.SimpleActionServer(
-            '/table_objects_extractor/get_label_image', 
+            '/object_detector/table_objects_extractor', 
             GenericImgProcAnnotatorAction, 
             self.get_labels_img, 
             False)

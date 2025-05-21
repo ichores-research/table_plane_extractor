@@ -8,11 +8,11 @@ import tf2_ros
 from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorResult
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import Pose
-from v4r_util.depth_pcd import convert_ros_depth_img_to_pcd, convert_np_label_img_to_ros_color_img
+from v4r_util.conversions import convert_ros_depth_img_to_pcd, convert_np_label_img_to_ros_color_img
 from v4r_util.message_checks import check_for_rgb_depth
 from v4r_util.rviz_visualization.rviz_visualizer import RvizVisualizer
 from open3d_ros_helper import open3d_ros_helper as orh
-from v4r_util.util import transformPointCloud
+from v4r_util.tf2 import TF2Wrapper
 from extractor_of_table_planes import extract_table_planes_from_pcd
 from extractor_of_table_objects import extract_objects_from_tableplane
 
@@ -20,6 +20,8 @@ from extractor_of_table_objects import extract_objects_from_tableplane
 class GetObjectsOnTableAS():
 
     def __init__(self):
+
+        self.tf_wrapper = TF2Wrapper()
         self.server = actionlib.SimpleActionServer(
             '/table_objects_extractor/get_label_image', 
             GenericImgProcAnnotatorAction, 
@@ -64,9 +66,6 @@ class GetObjectsOnTableAS():
         table_params = rospy.get_param("/table_plane_extractor")
         object_params = rospy.get_param("/table_objects_extractor")
 
-        tf_buffer = tf2_ros.Buffer()
-        tf2_ros.TransformListener(tf_buffer)
-
         # get pointcloud and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
         pcd, _ = convert_ros_depth_img_to_pcd(
             goal.depth, 
@@ -76,11 +75,7 @@ class GetObjectsOnTableAS():
         width = pcd.width
         
         #make sure pointcloud has z pointing up
-        pcd = transformPointCloud(
-            pcd, 
-            table_params['base_frame'], 
-            pcd.header.frame_id, 
-            tf_buffer) 
+        pcd = self.tf_wrapper.transformPointCloud(pcd, table_params['base_frame'], pcd.header.frame_id) 
         header = pcd.header
         pcd_with_nans = orh.rospc_to_o3dpc(pcd, remove_nans=False)
         pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)

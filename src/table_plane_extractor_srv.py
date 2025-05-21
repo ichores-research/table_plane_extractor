@@ -5,7 +5,8 @@ from grasping_pipeline_msgs.msg import Plane
 import rospy
 from open3d_ros_helper import open3d_ros_helper as orh
 import tf2_ros
-from v4r_util.util import o3d_bb_to_ros_bb, transformPointCloud
+from v4r_util.tf2 import TF2Wrapper
+from v4r_util.conversions import o3d_bb_to_ros_bb
 from v4r_util.rviz_visualization.rviz_visualizer import RvizVisualizer
 from vision_msgs.msg import BoundingBox3DArray
 
@@ -24,8 +25,7 @@ class TablePlaneExtractorServer():
             '/table_plane_extractor/get_planes',
             TablePlaneExtractor, 
             self.table_plane_extractor_methode)
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tl = tf2_ros.TransformListener(self.tf_buffer)
+        self.tf_wrapper = TF2Wrapper()
         print("Ready to extract planes")
         
 
@@ -42,17 +42,11 @@ class TablePlaneExtractorServer():
         if table_params["enable_rviz_visualization"]:
             rviz_vis = RvizVisualizer('TablePlaneExtractorVisualizer') 
 
-        
-
         # get pointcloud and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
         pcd = req.point_cloud
 
         #make sure pointcloud has z pointing up
-        pcd = transformPointCloud(
-            pcd, 
-            table_params['base_frame'], 
-            pcd.header.frame_id, 
-            self.tf_buffer) 
+        pcd = self.tf_wrapper.transformPointCloud(pcd, table_params['base_frame'], pcd.header.frame_id) 
         header = pcd.header
         pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
 

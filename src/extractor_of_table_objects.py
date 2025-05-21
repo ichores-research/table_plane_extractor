@@ -1,5 +1,5 @@
 import numpy as np
-from v4r_util.util import get_minimum_oriented_bounding_box
+from v4r_util.bb import get_minimum_oriented_bounding_box
 
 
 def extract_objects_from_tableplane(pcd, table_planes, eps, min_points, min_volume, max_obj_height, height, width):

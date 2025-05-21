@@ -23,7 +23,7 @@ class GetObjectsOnTableAS():
 
         self.tf_wrapper = TF2Wrapper()
         self.server = actionlib.SimpleActionServer(
-            '/table_objects_extractor/get_label_image', 
+            '/object_detector/table_objects_extractor', 
             GenericImgProcAnnotatorAction, 
             self.get_labels_img, 
             False)

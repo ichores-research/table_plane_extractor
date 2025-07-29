@@ -25,22 +25,22 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 # Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  TablePlaneExtractor.srv
-  GetPCOfObjectsOnTable.srv
-  GetBBOfObjectsOnTable.srv
-)
+#add_service_files(
+#  FILES
+#  TablePlaneExtractor.srv
+#  GetPCOfObjectsOnTable.srv
+#  GetBBOfObjectsOnTable.srv
+#)
 
 # Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-  sensor_msgs
-  vision_msgs
-  grasping_pipeline_msgs
-)
+#generate_messages(
+#  DEPENDENCIES
+#  std_msgs
+#  geometry_msgs
+#  sensor_msgs
+#  vision_msgs
+#  grasping_pipeline_msgs
+#)
 
 
 catkin_package()

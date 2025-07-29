@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from table_plane_extractor.srv import TablePlaneExtractor, TablePlaneExtractorResponse
+from table_plane_extractor_msgs.srv import TablePlaneExtractor, TablePlaneExtractorResponse
 from extractor_of_table_planes import extract_table_planes_from_pcd
 from grasping_pipeline_msgs.msg import Plane
 import rospy
@@ -79,7 +79,7 @@ class TablePlaneExtractorServer():
         if table_params['enable_rviz_visualization']:
             rviz_vis.publish_ros_bb_arr(bb_arr, "table_plane", True)
         
-        return TablePlaneExtractorResponse(planes_ros, bb_arr)
+        return TablePlaneExtractorResponse(bb_arr)
 
 if __name__ == "__main__":
     srv = TablePlaneExtractorServer()

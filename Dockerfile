@@ -21,6 +21,7 @@ COPY . /root/catkin_ws/src/table_plane_extractor
 
 # clone and build message and service definitions
 RUN /bin/bash -c 'cd /root/catkin_ws/src; \
+                  git clone https://github.com/ichores-research/table_plane_extractor_msgs.git; \
                   git clone https://github.com/v4r-tuwien/v4r_util.git; \
                   git clone https://github.com/v4r-tuwien/grasping_pipeline_msgs.git; \
                   git clone https://gitlab.informatik.uni-bremen.de/robokudo/robokudo_msgs.git'

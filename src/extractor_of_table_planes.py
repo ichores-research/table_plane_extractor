@@ -95,7 +95,7 @@ def extract_table_planes_from_pcd(
                 planes.append((a,b,c,d))
 
                 print("Plane equation: {}x + {}y + {}z + {} = 0".format(a, b, c, d))
-                bb_plane = plane_pc.get_minimal_oriented_bounding_box(robust=True)
+                # bb_plane = bb_plane.get_minimal_oriented_bounding_box(robust=True)
                 bboxes.append(bb_plane)
     if len(planes) == 0:
         print("No planes found")

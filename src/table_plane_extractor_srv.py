@@ -9,8 +9,12 @@ from v4r_util.tf2 import TF2Wrapper
 from v4r_util.conversions import o3d_bb_to_ros_bb
 from v4r_util.rviz_visualization.rviz_visualizer import RvizVisualizer
 from vision_msgs.msg import BoundingBox3DArray
+from v4r_util.tf2 import TF2Wrapper
+from v4r_util.conversions import bounding_box_to_bounding_box_stamped
+from v4r_util.util import align_bounding_box_rotation, ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
 
 from std_msgs.msg import Header
+import numpy as np
 
 
 class TablePlaneExtractorServer():
@@ -78,6 +82,30 @@ class TablePlaneExtractorServer():
 
         if table_params['enable_rviz_visualization']:
             rviz_vis.publish_ros_bb_arr(bb_arr, "table_plane", True)
+
+
+        # Post process boxes
+        transform_to_base = False
+        if header.frame_id != 'base_footprint':
+            transform_to_base = True
+
+        for ros_bb in bb_arr.boxes:
+            if transform_to_base:
+                ros_bb = bounding_box_to_bounding_box_stamped(ros_bb, bb_arr.header.frame_id, rospy.Time.now())
+                ros_bb = self.tf_wrapper.transform_bounding_box(ros_bb, 'base_footprint')
+
+            aligned_bb_o3d = align_bounding_box_rotation(ros_bb_to_o3d_bb(ros_bb))
+            ros_bb = o3d_bb_to_ros_bb(aligned_bb_o3d)
+            size = ros_bb.size
+
+            center = ros_bb.center.position
+            old_center_z = center.z
+            size = ros_bb.size
+            center.z = (center.z + size.z / 2) / 2
+            size.x = size.x + 0.04
+            size.y = size.y + 0.04
+            size.z = old_center_z + size.z / 2 - 0.02
+
         
         return TablePlaneExtractorResponse(bb_arr)
 

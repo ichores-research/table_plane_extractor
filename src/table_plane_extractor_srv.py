@@ -89,7 +89,7 @@ class TablePlaneExtractorServer():
         if header.frame_id != 'base_footprint':
             transform_to_base = True
 
-        for ros_bb in bb_arr.boxes:
+        for i, ros_bb in enumerate(bb_arr.boxes):
             if transform_to_base:
                 ros_bb = bounding_box_to_bounding_box_stamped(ros_bb, bb_arr.header.frame_id, rospy.Time.now())
                 ros_bb = self.tf_wrapper.transform_bounding_box(ros_bb, 'base_footprint')
@@ -104,9 +104,10 @@ class TablePlaneExtractorServer():
             center.z = (center.z + size.z / 2) / 2
             size.x = size.x + 0.04
             size.y = size.y + 0.04
-            size.z = old_center_z + size.z / 2 - 0.02
+            size.z = old_center_z + size.z / 2 - 0.02 
 
-        
+            bb_arr.boxes[i] = ros_bb
+
         return TablePlaneExtractorResponse(bb_arr)
 
 if __name__ == "__main__":

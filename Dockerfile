@@ -2,8 +2,20 @@ FROM ros:noetic
 ENTRYPOINT [ ]
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt update \
- && apt install -y --no-install-recommends ros-noetic-tf2-geometry-msgs ros-noetic-vision-msgs \
+RUN rm /etc/apt/sources.list.d/ros1-snapshots.list
+
+RUN apt -y update && apt -y install wget curl ca-certificates
+# Install new GPG ROS key
+RUN wget -qO /usr/share/keyrings/ros-archive-keyring.gpg \
+      https://github.com/ros-infrastructure/ros-apt-source/raw/refs/heads/main/ros-apt-source/keys/ros-archive-keyring.gpg \
+    && chmod a+r /usr/share/keyrings/ros-archive-keyring.gpg
+
+RUN echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros/ubuntu focal main" \
+    > /etc/apt/sources.list.d/ros-latest.list
+
+RUN apt update
+
+RUN apt install -y --no-install-recommends ros-noetic-tf2-geometry-msgs ros-noetic-vision-msgs \
  ros-noetic-ros-numpy ros-noetic-tf2-sensor-msgs ros-noetic-vision-opencv
 
 RUN apt install -y python3-catkin-tools git

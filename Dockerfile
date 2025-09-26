@@ -2,7 +2,7 @@ FROM ros:noetic
 ENTRYPOINT [ ]
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN rm /etc/apt/sources.list.d/ros1-latest.list
+RUN rm /etc/apt/sources.list.d/ros1-snapshots.list
 
 RUN apt -y update && apt -y install wget curl ca-certificates
 # Install new GPG ROS key

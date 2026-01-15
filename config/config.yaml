@@ -5,7 +5,7 @@ table_plane_extractor:
   cluster_dbscan_eps: 0.15                       # eps for dbscan clustering algorithm (in m)
   plane_segmentation_distance_threshold: 0.01   # Max distance (in m) a point can be from the plane model
                                                 # and still be considered an inlier.
-  base_frame: map                               # frame which is used for all calculations, which means
+  base_frame: odom                               # frame which is used for all calculations, which means
                                                 # that the planes returned are horizontal in this frame 
                                                 # -> should be a frame with z pointing upwards for table extractions
   z_min: 0.2                                    # min allowed z_coordinate (in m) for planes (used for filtering floor)

@@ -49,9 +49,17 @@ class TablePlaneExtractorServer():
         # get pointcloud and convert from sensor_msgs/Pointcloud2 to open3d.geometry.PointCloud
         pcd = req.point_cloud
 
-        #make sure pointcloud has z pointing up
-        pcd = self.tf_wrapper.transformPointCloud(pcd, table_params['base_frame'], pcd.header.frame_id) 
+        # Use latest available transform to avoid timeout issues
+        pcd.header.stamp = rospy.Time(0)
+        
+        try:
+            pcd = self.tf_wrapper.transformPointCloud(pcd, table_params['base_frame'], pcd.header.frame_id)
+        except (tf2_ros.LookupException, tf2_ros.ExtrapolationException, tf2_ros.ConnectivityException) as e:
+            rospy.logerr(f"Transform failed: {e}")
+            return TablePlaneExtractorResponse([])
+
         header = pcd.header
+        
         pcd = orh.rospc_to_o3dpc(pcd, remove_nans=True)
 
         # downsample cloud
@@ -69,7 +77,7 @@ class TablePlaneExtractorServer():
         
         if planes is None:
             rospy.logerr("No planes found!")
-            return None, None
+            return TablePlaneExtractorResponse([])
         
         planes_ros = [
             Plane(
@@ -84,7 +92,6 @@ class TablePlaneExtractorServer():
         if table_params['enable_rviz_visualization']:
             rviz_vis.publish_ros_bb_arr(bb_arr, "table_plane", True)
 
-
         # Post process boxes
         transform_to_base = False
         if header.frame_id != 'base_footprint':
@@ -92,7 +99,7 @@ class TablePlaneExtractorServer():
 
         for i, ros_bb in enumerate(boxes):
             if transform_to_base:
-                ros_bb = bounding_box_to_bounding_box_stamped(ros_bb, bb_arr.header.frame_id, rospy.Time.now())
+                ros_bb = bounding_box_to_bounding_box_stamped(ros_bb, bb_arr.header.frame_id, rospy.Time(0))
                 ros_bb = self.tf_wrapper.transform_bounding_box(ros_bb, 'base_footprint')
 
             aligned_bb_o3d = align_bounding_box_rotation(ros_bb_to_o3d_bb(ros_bb))
@@ -108,6 +115,8 @@ class TablePlaneExtractorServer():
             size.z = old_center_z + size.z / 2 - 0.02 
 
             boxes[i] = ros_bb
+
+        rospy.logwarn(f"Debug: {boxes}")
 
         return TablePlaneExtractorResponse(boxes)
 

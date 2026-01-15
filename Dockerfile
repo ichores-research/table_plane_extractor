@@ -43,3 +43,4 @@ RUN source /root/catkin_ws/devel/setup.bash
 
 WORKDIR /root
 CMD [ "bash", "-c", "source /opt/ros/noetic/setup.bash && source /root/catkin_ws/devel/setup.bash && roslaunch table_plane_extractor table_plane_extractor.launch" ]
+# CMD [ "bash", "-c", "tail -f /dev/null" ]
